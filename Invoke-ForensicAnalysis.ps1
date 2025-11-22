@@ -292,12 +292,57 @@ function Get-AutorunEntries {
         return @()
     }
 
-    Write-Host "[*] Running Autorunsc (this may take a few minutes)..."
+    Write-Host "[*] Running Autorunsc with real-time monitoring..."
+    Write-Host "[*] Monitoring CPU usage every 5 seconds (Ctrl+C to cancel)..." -ForegroundColor Yellow
 
     try {
         # Accept EULA automatically with -accepteula
         # Removed -h (hash calculated later) and -v (signature verification - slow/network dependent)
-        $output = & $autorunsc -accepteula -a * -c -s 2>&1 | Out-String
+
+        # Run autorunsc in a job so we can monitor it
+        $job = Start-Job -ScriptBlock {
+            param($exePath)
+            & $exePath -accepteula -a * -c -s 2>&1 | Out-String
+        } -ArgumentList $autorunsc
+
+        # Monitor the process
+        $startTime = Get-Date
+        $lastCpu = 0
+        $monitorCount = 0
+
+        while ($job.State -eq 'Running') {
+            Start-Sleep -Seconds 5
+            $monitorCount++
+
+            # Find the autorunsc process
+            $proc = Get-Process -Name "autorunsc*" -ErrorAction SilentlyContinue
+
+            if ($proc) {
+                $runtime = (Get-Date) - $startTime
+                $cpuTime = [math]::Round($proc.CPU, 2)
+                $cpuDelta = $cpuTime - $lastCpu
+                $memoryMB = [math]::Round($proc.WS / 1MB, 2)
+
+                # Determine status based on CPU delta
+                $status = if ($cpuDelta -gt 0.1) { "WORKING" } else { "IDLE?" }
+                $color = if ($cpuDelta -gt 0.1) { "Green" } else { "Yellow" }
+
+                Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Runtime: $([math]::Round($runtime.TotalMinutes,1))min | CPU: ${cpuTime}s (Δ+${cpuDelta}s) | Memory: ${memoryMB}MB | Status: $status" -ForegroundColor $color -NoNewline
+
+                $lastCpu = $cpuTime
+            } else {
+                Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Waiting for autorunsc process to start..." -ForegroundColor Gray -NoNewline
+            }
+        }
+
+        Write-Host "" # New line after monitoring
+
+        # Get the output
+        $output = Receive-Job $job
+        Remove-Job $job -Force
+
+        $totalTime = (Get-Date) - $startTime
+        Write-ColoredMessage "[+] Autorunsc completed in $([math]::Round($totalTime.TotalMinutes,1)) minutes" -Color Green
 
         $entries = @()
         $lines = $output -split "`n" | Where-Object { $_ -match '\S' }
