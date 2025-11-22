@@ -29,16 +29,16 @@
     .\Remote-Launch.ps1 -EnableVirusTotal -VirusTotalApiKey "your-key"
 
 .EXAMPLE
-    # Via IEX from GitHub (replace with your actual URL)
-    iex (irm "https://raw.githubusercontent.com/yourusername/forensicinvestigator/main/Remote-Launch.ps1")
+    # Via IEX from GitHub
+    iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
     # Via IEX with parameters
-    $env:VT_API_KEY = "your-api-key"; iex (irm "https://your-url/Remote-Launch.ps1")
+    $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
     # ConnectWise Command - One-liner
-    powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://your-url/Remote-Launch.ps1')"
+    powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
 #>
 
 [CmdletBinding()]
@@ -62,7 +62,7 @@ param(
     [string]$UploadUrl = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/yourusername/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 )
 
 function Write-Log {
