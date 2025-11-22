@@ -302,7 +302,7 @@ function Get-AutorunEntries {
         # Run autorunsc in a job so we can monitor it
         $job = Start-Job -ScriptBlock {
             param($exePath)
-            & $exePath -accepteula -a * -c -s 2>&1 | Out-String
+            & $exePath -accepteula -a * -c -s 2>&1
         } -ArgumentList $autorunsc
 
         # Monitor the process
@@ -345,24 +345,61 @@ function Get-AutorunEntries {
         Write-ColoredMessage "[+] Autorunsc completed in $([math]::Round($totalTime.TotalMinutes,1)) minutes" -Color Green
 
         $entries = @()
-        $lines = $output -split "`n" | Where-Object { $_ -match '\S' }
+
+        # Filter empty lines
+        $lines = $output | Where-Object { ![string]::IsNullOrWhiteSpace($_) }
 
         if ($lines.Count -lt 2) {
-            Write-ColoredMessage "[!] No output from Autorunsc" -Color Yellow
+            Write-ColoredMessage "[!] No output from Autorunsc (only $($lines.Count) lines)" -Color Yellow
+            Write-Host "[DEBUG] Output received: $($output -join '|')" -ForegroundColor Gray
             return @()
         }
 
+        Write-Host "[DEBUG] Autorunsc returned $($lines.Count) lines" -ForegroundColor Gray
+        Write-Host "[DEBUG] First line (header): $($lines[0])" -ForegroundColor Gray
+
         # Parse CSV output
-        $csv = $lines | ConvertFrom-Csv
+        try {
+            $csv = $lines | ConvertFrom-Csv
+            Write-Host "[DEBUG] CSV parsed successfully, $($csv.Count) entries" -ForegroundColor Gray
+            if ($csv.Count -gt 0) {
+                Write-Host "[DEBUG] CSV columns: $($csv[0].PSObject.Properties.Name -join ', ')" -ForegroundColor Gray
+            }
+        } catch {
+            Write-ColoredMessage "[!] Failed to parse CSV: $_" -Color Red
+            Write-Host "[DEBUG] First 5 lines:" -ForegroundColor Gray
+            $lines | Select-Object -First 5 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+            return @()
+        }
 
         $totalEntries = $csv.Count
         $currentEntry = 0
+
+        # Helper function to safely get property value
+        $GetProp = {
+            param($obj, [string[]]$names)
+            foreach ($name in $names) {
+                if ($obj.PSObject.Properties.Name -contains $name) {
+                    return $obj.$name
+                }
+            }
+            return $null
+        }
 
         foreach ($entry in $csv) {
             $currentEntry++
             Write-Progress -Activity "Analyzing Autorun Entries" -Status "Processing $currentEntry of $totalEntries" -PercentComplete (($currentEntry / $totalEntries) * 100)
 
-            $imagePath = $entry.'Image Path'
+            # Try different possible column names (autorunsc format varies)
+            $imagePath = & $GetProp $entry @('Image Path', 'ImagePath', 'Path')
+            $entryLocation = & $GetProp $entry @('Entry Location', 'EntryLocation', 'Location')
+            $entryName = & $GetProp $entry @('Entry', 'Name', 'Item')
+            $description = & $GetProp $entry @('Description', 'Desc')
+            $publisher = & $GetProp $entry @('Publisher', 'Signer', 'Company')
+            $version = & $GetProp $entry @('Version')
+            $launchString = & $GetProp $entry @('Launch String', 'LaunchString', 'Command')
+            $timestamp = & $GetProp $entry @('Time', 'Timestamp')
+
             $hash = $null
             $vtReport = $null
 
@@ -375,24 +412,24 @@ function Get-AutorunEntries {
                 }
             }
 
-            $signature = if ($entry.Publisher) { $entry.Publisher } else { "(Not verified)" }
+            $signature = if (![string]::IsNullOrWhiteSpace($publisher)) { $publisher } else { "(Not verified)" }
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
             $entries += [PSCustomObject]@{
                 Type = "Autorun"
-                EntryLocation = $entry.'Entry Location'
-                Entry = $entry.Entry
-                Description = $entry.Description
+                EntryLocation = $entryLocation
+                Entry = $entryName
+                Description = $description
                 Publisher = $signature
                 ImagePath = $imagePath
-                Version = $entry.Version
-                LaunchString = $entry.'Launch String'
+                Version = $version
+                LaunchString = $launchString
                 SHA256 = $hash
                 VT_Malicious = if ($vtReport) { $vtReport.Malicious } else { "N/A" }
                 VT_Suspicious = if ($vtReport) { $vtReport.Suspicious } else { "N/A" }
                 VT_Detections = if ($vtReport) { "$($vtReport.Malicious)/$($vtReport.Malicious + $vtReport.Suspicious + $vtReport.Undetected + $vtReport.Harmless)" } else { "N/A" }
                 RiskLevel = $riskLevel
-                Timestamp = $entry.Time
+                Timestamp = $timestamp
             }
         }
 
