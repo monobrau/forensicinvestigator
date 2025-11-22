@@ -19,7 +19,7 @@
     Directory where Sysinternals tools will be downloaded
 
 .EXAMPLE
-    iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Quick-Scan.ps1")
+    iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Quick-Scan.ps1")
 #>
 
 [CmdletBinding()]

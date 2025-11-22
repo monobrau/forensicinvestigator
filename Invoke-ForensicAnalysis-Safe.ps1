@@ -59,7 +59,7 @@ param(
 )
 
 # Import the main script functions but with timeout protection
-$mainScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Invoke-ForensicAnalysis.ps1"
+$mainScriptUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 
 Write-Host "=== SAFE MODE Forensic Analysis ===" -ForegroundColor Cyan
 Write-Host "Loading core functions with crash protection..." -ForegroundColor Yellow

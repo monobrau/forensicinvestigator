@@ -8,7 +8,7 @@ If the regular script crashes, use the safe mode version:
 
 ```powershell
 # Remote execution (safe mode)
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Invoke-ForensicAnalysis-Safe.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis-Safe.ps1")
 
 # Or skip problematic components
 .\Invoke-ForensicAnalysis-Safe.ps1 -SkipAutoruns -TimeoutSeconds 120
@@ -20,7 +20,7 @@ iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude
 
 ```powershell
 # Download and run the diagnostic script
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Quick-Test.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Quick-Test.ps1")
 ```
 
 This will test each component separately and tell you which one is causing problems.
@@ -190,7 +190,7 @@ The safe mode script will skip failed components automatically.
 **Option A: Download manually first**
 ```powershell
 # Download the script
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Invoke-ForensicAnalysis.ps1" -OutFile "forensic.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "forensic.ps1"
 
 # Run locally
 .\forensic.ps1
@@ -205,7 +205,7 @@ iex (irm "https://...")
 
 **Option C: Clone repository**
 ```powershell
-git clone https://github.com/monobrau/forensicinvestigator.git
+git clone https://github.com/YOUR_USERNAME/forensicinvestigator.git
 cd forensicinvestigator
 .\Invoke-ForensicAnalysis.ps1
 ```

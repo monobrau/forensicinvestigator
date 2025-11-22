@@ -43,10 +43,10 @@ Once you've pushed your repository to GitHub (or another hosting service), you c
 Your GitHub raw URLs:
 ```
 # Main branch (once merged):
-https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1
+https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1
 
 # Current development branch:
-https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1
+https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1
 ```
 
 ### Step 2: Test Remote Execution
@@ -54,21 +54,21 @@ https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysintern
 **Basic IEX Test (no VirusTotal):**
 ```powershell
 # Using current branch
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 
 # Or once merged to main:
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 
 **With VirusTotal API Key:**
 ```powershell
 $env:VT_API_KEY = "your-virustotal-api-key"
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 
 **One-liner for RMM platforms:**
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-key'; iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1')"
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-key'; iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
 ```
 
 ### Step 3: Test ConnectWise Command
@@ -79,7 +79,7 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='you
 
 ```powershell
 # Current branch
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 
 ## Alternative: Test via Local Web Server
@@ -140,11 +140,11 @@ Ready-to-use commands for your repository:
 ### Local Test
 ```powershell
 # Clone your repo (if testing on another machine)
-git clone https://github.com/monobrau/forensicinvestigator.git
+git clone https://github.com/YOUR_USERNAME/forensicinvestigator.git
 cd forensicinvestigator
 
 # Switch to the branch
-git checkout claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf
+git checkout main
 
 # Run local test
 .\Invoke-ForensicAnalysis.ps1 -OutputPath "$env:TEMP\ForensicTest"
@@ -153,7 +153,7 @@ git checkout claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf
 ### Remote Test (GitHub)
 ```powershell
 # Your actual URLs
-$url = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Remote-Launch.ps1"
+$url = "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1"
 
 # Test without VirusTotal
 iex (irm $url)
