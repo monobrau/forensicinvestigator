@@ -658,40 +658,66 @@ function Export-ToExcel {
 
         # Get column headers
         $properties = $Data[0].PSObject.Properties.Name
+        $rowCount = $Data.Count
+        $colCount = $properties.Count
 
-        # Write headers
-        for ($i = 0; $i -lt $properties.Count; $i++) {
-            $worksheet.Cells.Item(1, $i + 1) = $properties[$i]
-            $worksheet.Cells.Item(1, $i + 1).Font.Bold = $true
-            $worksheet.Cells.Item(1, $i + 1).Interior.ColorIndex = 15  # Gray
+        # Build 2D array for bulk write (MUCH faster than cell-by-cell)
+        $dataArray = New-Object 'object[,]' ($rowCount + 1), $colCount
+
+        # Add headers to first row
+        for ($col = 0; $col -lt $colCount; $col++) {
+            $dataArray[0, $col] = $properties[$col]
         }
 
-        # Write data and apply color coding
-        $row = 2
-        foreach ($item in $Data) {
-            for ($i = 0; $i -lt $properties.Count; $i++) {
-                $value = $item.($properties[$i])
-                $worksheet.Cells.Item($row, $i + 1) = if ($value) { $value.ToString() } else { "" }
+        # Add data rows
+        for ($row = 0; $row -lt $rowCount; $row++) {
+            $item = $Data[$row]
+            for ($col = 0; $col -lt $colCount; $col++) {
+                $value = $item.($properties[$col])
+                $dataArray[$row + 1, $col] = if ($value) { $value.ToString() } else { "" }
             }
+        }
 
-            # Apply color coding based on RiskLevel
-            $riskLevel = $item.RiskLevel
+        # Write entire array to Excel in ONE operation (10-100x faster!)
+        # Convert column number to Excel letter (handles beyond Z: AA, AB, etc.)
+        $endColumnLetter = ""
+        $colNum = $colCount
+        while ($colNum -gt 0) {
+            $modulo = ($colNum - 1) % 26
+            $endColumnLetter = [char](65 + $modulo) + $endColumnLetter
+            $colNum = [math]::Floor(($colNum - $modulo) / 26)
+        }
+
+        $range = $worksheet.Range("A1:$endColumnLetter$($rowCount + 1)")
+        $range.Value2 = $dataArray
+
+        # Format header row
+        $headerRange = $worksheet.Range("A1:$endColumnLetter`1")
+        $headerRange.Font.Bold = $true
+        $headerRange.Interior.ColorIndex = 15  # Gray
+
+        # Apply color coding based on RiskLevel (now must be done after data write)
+        for ($row = 0; $row -lt $rowCount; $row++) {
+            $riskLevel = $Data[$row].RiskLevel
+            $excelRow = $row + 2  # +2 because Excel is 1-based and row 1 is headers
+
             switch ($riskLevel) {
                 "High" {
-                    $worksheet.Rows.Item($row).Interior.Color = 255  # Red (BGR format)
-                    $worksheet.Rows.Item($row).Font.Color = 16777215  # White
+                    $rowRange = $worksheet.Rows.Item($excelRow)
+                    $rowRange.Interior.Color = 255  # Red (BGR format)
+                    $rowRange.Font.Color = 16777215  # White
                 }
                 "Medium" {
-                    $worksheet.Rows.Item($row).Interior.Color = 65535  # Yellow (BGR format)
-                    $worksheet.Rows.Item($row).Font.Color = 0  # Black
+                    $rowRange = $worksheet.Rows.Item($excelRow)
+                    $rowRange.Interior.Color = 65535  # Yellow (BGR format)
+                    $rowRange.Font.Color = 0  # Black
                 }
                 "Low" {
-                    $worksheet.Rows.Item($row).Interior.Color = 5287936  # Green (BGR format)
-                    $worksheet.Rows.Item($row).Font.Color = 16777215  # White
+                    $rowRange = $worksheet.Rows.Item($excelRow)
+                    $rowRange.Interior.Color = 5287936  # Green (BGR format)
+                    $rowRange.Font.Color = 16777215  # White
                 }
             }
-
-            $row++
         }
 
         # Auto-fit columns
