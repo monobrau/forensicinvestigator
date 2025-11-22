@@ -81,6 +81,69 @@ This will:
 | `EnableVirusTotal` | Switch | No | `$false` | Enable VirusTotal scanning |
 | `ToolsPath` | String | No | `.\SysinternalsTools` | Directory for Sysinternals tools |
 
+## Remote Deployment
+
+The tool supports remote deployment via IEX (Invoke-Expression) and RMM platforms like ConnectWise, Datto, and NinjaRMM.
+
+### Quick Remote Execution
+
+**Via IEX (replace URL with your hosted script):**
+```powershell
+# Basic execution
+iex (irm "https://raw.githubusercontent.com/yourusername/forensicinvestigator/main/Remote-Launch.ps1")
+
+# With VirusTotal API key
+$env:VT_API_KEY = "your-api-key"
+iex (irm "https://your-url/Remote-Launch.ps1")
+```
+
+**One-liner for RMM platforms:**
+```powershell
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-key'; iex (irm 'https://your-url/Remote-Launch.ps1')"
+```
+
+### ConnectWise Command (ScreenConnect)
+
+1. Open session → **Commands** tab
+2. Select **PowerShell**
+3. Paste command:
+```powershell
+iex (irm "https://your-url/Remote-Launch.ps1")
+```
+
+### ConnectWise Automate
+
+Create a PowerShell script with:
+```powershell
+$ScriptUrl = "https://your-url/Remote-Launch.ps1"
+$VTApiKey = "@VT_API_KEY@"  # Automate variable
+
+$script = Invoke-RestMethod -Uri $ScriptUrl -UseBasicParsing
+$tempScript = "$env:TEMP\forensic.ps1"
+$script | Out-File -FilePath $tempScript -Encoding UTF8
+
+& $tempScript -EnableVirusTotal -VirusTotalApiKey $VTApiKey
+
+Remove-Item $tempScript -Force
+```
+
+### Other RMM Platforms
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for detailed instructions for:
+- **Datto RMM**
+- **NinjaRMM**
+- **Kaseya VSA**
+- **Syncro**
+- **Atera**
+- **N-able N-central**
+
+The deployment guide includes:
+- Platform-specific script templates
+- Variable/parameter configuration
+- Scheduling and automation setup
+- Security best practices
+- Troubleshooting tips
+
 ## Getting a VirusTotal API Key
 
 1. Create a free account at [VirusTotal](https://www.virustotal.com/)
