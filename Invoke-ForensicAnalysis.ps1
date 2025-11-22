@@ -426,7 +426,16 @@ function Get-AutorunEntries {
             $entryLocation = Get-CsvProperty $entry @('Entry Location', 'EntryLocation', 'Location')
             $entryName = Get-CsvProperty $entry @('Entry', 'Name', 'Item')
             $description = Get-CsvProperty $entry @('Description', 'Desc')
-            $publisher = Get-CsvProperty $entry @('Publisher', 'Signer', 'Company')
+            $enabled = Get-CsvProperty $entry @('Enabled')
+            $category = Get-CsvProperty $entry @('Category')
+            $profile = Get-CsvProperty $entry @('Profile')
+
+            # Try Signer first (most common), then Company, then Publisher
+            $signer = Get-CsvProperty $entry @('Signer', 'Publisher')
+            $company = Get-CsvProperty $entry @('Company', 'Manufacturer')
+            # Use Signer if available, otherwise Company
+            $publisher = if (![string]::IsNullOrWhiteSpace($signer)) { $signer } else { $company }
+
             $version = Get-CsvProperty $entry @('Version')
             $launchString = Get-CsvProperty $entry @('Launch String', 'LaunchString', 'Command')
             $timestamp = Get-CsvProperty $entry @('Time', 'Timestamp')
@@ -443,6 +452,7 @@ function Get-AutorunEntries {
                 }
             }
 
+            # Determine signature/publisher for risk assessment
             $signature = if (![string]::IsNullOrWhiteSpace($publisher)) { $publisher } else { "(Not verified)" }
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
@@ -463,10 +473,15 @@ function Get-AutorunEntries {
 
             $entries += [PSCustomObject]@{
                 Type = "Autorun"
+                Timestamp = if ($timestamp) { $timestamp.ToString() } else { "" }
+                Category = if ($category) { $category.ToString() } else { "" }
+                Profile = if ($profile) { $profile.ToString() } else { "" }
+                Enabled = if ($enabled) { $enabled.ToString() } else { "" }
                 EntryLocation = if ($entryLocation) { $entryLocation.ToString() } else { "" }
                 Entry = if ($entryName) { $entryName.ToString() } else { "" }
                 Description = if ($description) { $description.ToString() } else { "" }
-                Publisher = $signature
+                Signer = if ($signer) { $signer.ToString() } else { "" }
+                Company = if ($company) { $company.ToString() } else { "" }
                 ImagePath = if ($imagePath) { $imagePath.ToString() } else { "" }
                 Version = if ($version) { $version.ToString() } else { "" }
                 LaunchString = if ($launchString) { $launchString.ToString() } else { "" }
@@ -475,7 +490,6 @@ function Get-AutorunEntries {
                 VT_Suspicious = if ($vtReport) { [string]$vtReport.Suspicious } else { "N/A" }
                 VT_Detections = $vtDetections
                 RiskLevel = $riskLevel
-                Timestamp = if ($timestamp) { $timestamp.ToString() } else { "" }
             }
         }
 
