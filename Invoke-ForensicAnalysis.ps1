@@ -299,11 +299,14 @@ function Get-AutorunEntries {
         # Accept EULA automatically with -accepteula
         # Removed -h (hash calculated later) and -v (signature verification - slow/network dependent)
 
+        # Create temp file for autorunsc output (handles UTF-16 encoding properly)
+        $tempCsvPath = Join-Path $env:TEMP "autorunsc_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
+
         # Run autorunsc in a job so we can monitor it
         $job = Start-Job -ScriptBlock {
-            param($exePath)
-            & $exePath -accepteula -a * -c -s 2>&1
-        } -ArgumentList $autorunsc
+            param($exePath, $outputPath)
+            & $exePath -accepteula -a * -c -s 2>&1 | Out-File -FilePath $outputPath -Encoding unicode
+        } -ArgumentList $autorunsc, $tempCsvPath
 
         # Monitor the process
         $startTime = Get-Date
@@ -337,8 +340,8 @@ function Get-AutorunEntries {
 
         Write-Host "" # New line after monitoring
 
-        # Get the output
-        $output = Receive-Job $job
+        # Wait for job to complete
+        $jobResult = Receive-Job $job -Wait
         Remove-Job $job -Force
 
         $totalTime = (Get-Date) - $startTime
@@ -346,12 +349,20 @@ function Get-AutorunEntries {
 
         $entries = @()
 
-        # Filter empty lines
-        $lines = $output | Where-Object { ![string]::IsNullOrWhiteSpace($_) }
+        # Read the CSV file with proper encoding
+        if (!(Test-Path $tempCsvPath)) {
+            Write-ColoredMessage "[!] Autorunsc output file not found: $tempCsvPath" -Color Red
+            return @()
+        }
+
+        # Read as UTF-16 (unicode) which is what autorunsc outputs
+        $lines = Get-Content -Path $tempCsvPath -Encoding Unicode | Where-Object { ![string]::IsNullOrWhiteSpace($_) }
 
         if ($lines.Count -lt 2) {
             Write-ColoredMessage "[!] No output from Autorunsc (only $($lines.Count) lines)" -Color Yellow
-            Write-Host "[DEBUG] Output received: $($output -join '|')" -ForegroundColor Gray
+            Write-Host "[DEBUG] First few lines from file:" -ForegroundColor Gray
+            $lines | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+            Remove-Item $tempCsvPath -Force -ErrorAction SilentlyContinue
             return @()
         }
 
@@ -376,14 +387,24 @@ function Get-AutorunEntries {
         $currentEntry = 0
 
         # Helper function to safely get property value
-        $GetProp = {
+        function Get-CsvProperty {
             param($obj, [string[]]$names)
             foreach ($name in $names) {
-                if ($obj.PSObject.Properties.Name -contains $name) {
-                    return $obj.$name
+                $prop = $obj.PSObject.Properties[$name]
+                if ($prop) {
+                    return $prop.Value
                 }
             }
             return $null
+        }
+
+        # Debug: Show first entry's actual properties
+        if ($csv.Count -gt 0) {
+            Write-Host "[DEBUG] First entry properties:" -ForegroundColor Cyan
+            $csv[0].PSObject.Properties | ForEach-Object {
+                $val = if ($_.Value.Length -gt 50) { $_.Value.Substring(0,50) + "..." } else { $_.Value }
+                Write-Host "  $($_.Name) = $val" -ForegroundColor Gray
+            }
         }
 
         foreach ($entry in $csv) {
@@ -391,14 +412,14 @@ function Get-AutorunEntries {
             Write-Progress -Activity "Analyzing Autorun Entries" -Status "Processing $currentEntry of $totalEntries" -PercentComplete (($currentEntry / $totalEntries) * 100)
 
             # Try different possible column names (autorunsc format varies)
-            $imagePath = & $GetProp $entry @('Image Path', 'ImagePath', 'Path')
-            $entryLocation = & $GetProp $entry @('Entry Location', 'EntryLocation', 'Location')
-            $entryName = & $GetProp $entry @('Entry', 'Name', 'Item')
-            $description = & $GetProp $entry @('Description', 'Desc')
-            $publisher = & $GetProp $entry @('Publisher', 'Signer', 'Company')
-            $version = & $GetProp $entry @('Version')
-            $launchString = & $GetProp $entry @('Launch String', 'LaunchString', 'Command')
-            $timestamp = & $GetProp $entry @('Time', 'Timestamp')
+            $imagePath = Get-CsvProperty $entry @('Image Path', 'ImagePath', 'Path')
+            $entryLocation = Get-CsvProperty $entry @('Entry Location', 'EntryLocation', 'Location')
+            $entryName = Get-CsvProperty $entry @('Entry', 'Name', 'Item')
+            $description = Get-CsvProperty $entry @('Description', 'Desc')
+            $publisher = Get-CsvProperty $entry @('Publisher', 'Signer', 'Company')
+            $version = Get-CsvProperty $entry @('Version')
+            $launchString = Get-CsvProperty $entry @('Launch String', 'LaunchString', 'Command')
+            $timestamp = Get-CsvProperty $entry @('Time', 'Timestamp')
 
             $hash = $null
             $vtReport = $null
@@ -415,30 +436,55 @@ function Get-AutorunEntries {
             $signature = if (![string]::IsNullOrWhiteSpace($publisher)) { $publisher } else { "(Not verified)" }
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
+            # Safely format VT detections (handle potential non-integer values)
+            $vtDetections = "N/A"
+            if ($vtReport) {
+                try {
+                    $mal = [int]$vtReport.Malicious
+                    $sus = [int]$vtReport.Suspicious
+                    $undet = [int]$vtReport.Undetected
+                    $harm = [int]$vtReport.Harmless
+                    $total = $mal + $sus + $undet + $harm
+                    $vtDetections = "$mal/$total"
+                } catch {
+                    $vtDetections = "Error"
+                }
+            }
+
             $entries += [PSCustomObject]@{
                 Type = "Autorun"
-                EntryLocation = $entryLocation
-                Entry = $entryName
-                Description = $description
+                EntryLocation = if ($entryLocation) { $entryLocation.ToString() } else { "" }
+                Entry = if ($entryName) { $entryName.ToString() } else { "" }
+                Description = if ($description) { $description.ToString() } else { "" }
                 Publisher = $signature
-                ImagePath = $imagePath
-                Version = $version
-                LaunchString = $launchString
-                SHA256 = $hash
-                VT_Malicious = if ($vtReport) { $vtReport.Malicious } else { "N/A" }
-                VT_Suspicious = if ($vtReport) { $vtReport.Suspicious } else { "N/A" }
-                VT_Detections = if ($vtReport) { "$($vtReport.Malicious)/$($vtReport.Malicious + $vtReport.Suspicious + $vtReport.Undetected + $vtReport.Harmless)" } else { "N/A" }
+                ImagePath = if ($imagePath) { $imagePath.ToString() } else { "" }
+                Version = if ($version) { $version.ToString() } else { "" }
+                LaunchString = if ($launchString) { $launchString.ToString() } else { "" }
+                SHA256 = if ($hash) { $hash } else { "" }
+                VT_Malicious = if ($vtReport) { [string]$vtReport.Malicious } else { "N/A" }
+                VT_Suspicious = if ($vtReport) { [string]$vtReport.Suspicious } else { "N/A" }
+                VT_Detections = $vtDetections
                 RiskLevel = $riskLevel
-                Timestamp = $timestamp
+                Timestamp = if ($timestamp) { $timestamp.ToString() } else { "" }
             }
         }
 
         Write-Progress -Activity "Analyzing Autorun Entries" -Completed
         Write-ColoredMessage "[+] Found $($entries.Count) autorun entries" -Color Green
+
+        # Clean up temp file
+        if (Test-Path $tempCsvPath) {
+            Remove-Item $tempCsvPath -Force -ErrorAction SilentlyContinue
+        }
+
         return $entries
 
     } catch {
         Write-ColoredMessage "[!] Error running Autorunsc: $_" -Color Red
+        # Clean up temp file on error
+        if (Test-Path variable:tempCsvPath) {
+            Remove-Item $tempCsvPath -Force -ErrorAction SilentlyContinue
+        }
         return @()
     }
 }
