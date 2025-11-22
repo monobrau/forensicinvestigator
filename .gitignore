@@ -1,0 +1,34 @@
+# Sysinternals Tools
+SysinternalsTools/
+*.exe
+
+# Forensic Reports
+ForensicReports/
+*.csv
+*.xlsx
+*.xls
+
+# API Keys and Sensitive Data
+*.key
+*.apikey
+config.json
+secrets.json
+
+# PowerShell artifacts
+*.log
+*.tmp
+
+# Windows artifacts
+Thumbs.db
+desktop.ini
+*.lnk
+
+# Temporary files
+temp/
+tmp/
+*.temp
+
+# User-specific directories
+Reports/
+Tools/
+Output/
