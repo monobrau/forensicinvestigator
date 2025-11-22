@@ -887,9 +887,9 @@ function Export-Results {
     # Check if Excel is available
     $excelAvailable = $false
     try {
-        $excel = New-Object -ComObject Excel.Application -ErrorAction Stop
-        $excel.Quit()
-        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+        $testExcel = New-Object -ComObject Excel.Application -ErrorAction Stop
+        $testExcel.Quit()
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($testExcel) | Out-Null
         $excelAvailable = $true
         Write-ColoredMessage "[+] Microsoft Excel detected - will export to XLSX with color coding" -Color Green
     } catch {
@@ -897,35 +897,151 @@ function Export-Results {
     }
 
     if ($excelAvailable) {
-        # Export to Excel with color coding
+        # Export to Excel with color coding - SINGLE WORKBOOK
         $excelPath = Join-Path $OutputPath "${hostname}_ForensicAnalysis_${timestamp}.xlsx"
 
-        $success = $true
-        if ($AutorunEntries.Count -gt 0) {
-            Write-Host "[*] Exporting Autoruns to Excel..."
-            $success = Export-ToExcel -Data $AutorunEntries -FilePath $excelPath -WorksheetName "Autoruns"
-        }
+        try {
+            # Create Excel instance ONCE
+            $excel = New-Object -ComObject Excel.Application
+            $excel.Visible = $false
+            $excel.DisplayAlerts = $false
 
-        if ($success -and $ServiceEntries.Count -gt 0) {
-            Write-Host "[*] Exporting Services to Excel..."
-            $success = Export-ToExcel -Data $ServiceEntries -FilePath $excelPath -WorksheetName "Services"
-        }
+            # Create workbook ONCE
+            $workbook = $excel.Workbooks.Add()
 
-        if ($success -and $NetworkEntries.Count -gt 0) {
-            Write-Host "[*] Exporting Network Connections to Excel..."
-            $success = Export-ToExcel -Data $NetworkEntries -FilePath $excelPath -WorksheetName "Network"
-        }
+            # Helper function to add worksheet with data
+            $addWorksheet = {
+                param($wb, $data, $sheetName)
 
-        if ($success -and $ProcessEntries.Count -gt 0) {
-            Write-Host "[*] Exporting Processes to Excel..."
-            $success = Export-ToExcel -Data $ProcessEntries -FilePath $excelPath -WorksheetName "Processes"
-        }
+                if ($data.Count -eq 0) { return }
 
-        if ($success) {
+                Write-Host "[*] Adding $sheetName worksheet..."
+
+                # Add new worksheet
+                $worksheet = $wb.Worksheets.Add()
+                $worksheet.Name = $sheetName
+
+                # Get column headers
+                $properties = $data[0].PSObject.Properties.Name
+                $rowCount = $data.Count
+                $colCount = $properties.Count
+
+                # Build 2D array for bulk write
+                $dataArray = New-Object 'object[,]' ($rowCount + 1), $colCount
+
+                # Add headers
+                for ($col = 0; $col -lt $colCount; $col++) {
+                    $dataArray[0, $col] = $properties[$col]
+                }
+
+                # Add data rows
+                for ($row = 0; $row -lt $rowCount; $row++) {
+                    $item = $data[$row]
+                    for ($col = 0; $col -lt $colCount; $col++) {
+                        $value = $item.($properties[$col])
+                        $dataArray[$row + 1, $col] = if ($value) { $value.ToString() } else { "" }
+                    }
+                }
+
+                # Calculate Excel column letter
+                $endColumnLetter = ""
+                $colNum = $colCount
+                while ($colNum -gt 0) {
+                    $modulo = ($colNum - 1) % 26
+                    $endColumnLetter = [char](65 + $modulo) + $endColumnLetter
+                    $colNum = [math]::Floor(($colNum - $modulo) / 26)
+                }
+
+                # Write data in ONE operation
+                $range = $worksheet.Range("A1:$endColumnLetter$($rowCount + 1)")
+                $range.Value2 = $dataArray
+
+                # Format header row
+                $headerRange = $worksheet.Range("A1:$endColumnLetter`1")
+                $headerRange.Font.Bold = $true
+                $headerRange.Interior.ColorIndex = 15  # Gray
+
+                # Apply color coding based on RiskLevel
+                for ($row = 0; $row -lt $rowCount; $row++) {
+                    $riskLevel = $data[$row].RiskLevel
+                    $excelRow = $row + 2
+
+                    switch ($riskLevel) {
+                        "High" {
+                            $rowRange = $worksheet.Rows.Item($excelRow)
+                            $rowRange.Interior.Color = 255  # Red
+                            $rowRange.Font.Color = 16777215  # White
+                        }
+                        "Medium" {
+                            $rowRange = $worksheet.Rows.Item($excelRow)
+                            $rowRange.Interior.Color = 65535  # Yellow
+                            $rowRange.Font.Color = 0  # Black
+                        }
+                        "Low" {
+                            $rowRange = $worksheet.Rows.Item($excelRow)
+                            $rowRange.Interior.Color = 5287936  # Green
+                            $rowRange.Font.Color = 16777215  # White
+                        }
+                    }
+                }
+
+                # Auto-fit columns
+                $worksheet.UsedRange.EntireColumn.AutoFit() | Out-Null
+            }
+
+            # Add all worksheets
+            if ($AutorunEntries.Count -gt 0) {
+                & $addWorksheet $workbook $AutorunEntries "Autoruns"
+            }
+            if ($ServiceEntries.Count -gt 0) {
+                & $addWorksheet $workbook $ServiceEntries "Services"
+            }
+            if ($NetworkEntries.Count -gt 0) {
+                & $addWorksheet $workbook $NetworkEntries "Network"
+            }
+            if ($ProcessEntries.Count -gt 0) {
+                & $addWorksheet $workbook $ProcessEntries "Processes"
+            }
+
+            # Delete the default blank worksheets
+            $excel.DisplayAlerts = $false
+            foreach ($sheet in $workbook.Worksheets) {
+                if ($sheet.Name -like "Sheet*" -and $sheet.UsedRange.Cells.Count -eq 1) {
+                    try {
+                        $sheet.Delete()
+                    } catch {
+                        # Ignore if we can't delete (might be the last sheet)
+                    }
+                }
+            }
+
+            # Save workbook
+            Write-Host "[*] Saving workbook..."
+            $workbook.SaveAs($excelPath)
+            $workbook.Close($false)
+            $excel.Quit()
+
+            # Clean up COM objects
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+            [System.GC]::Collect()
+            [System.GC]::WaitForPendingFinalizers()
+
             Write-ColoredMessage "`n[+] Excel report saved: $excelPath" -Color Green
             return $excelPath
-        } else {
-            Write-ColoredMessage "[!] Excel export failed, falling back to CSV" -Color Yellow
+
+        } catch {
+            Write-ColoredMessage "[!] Excel export failed: $_" -Color Red
+            Write-ColoredMessage "[!] Falling back to CSV export" -Color Yellow
+
+            # Cleanup on error
+            if ($workbook) {
+                try { $workbook.Close($false) } catch {}
+            }
+            if ($excel) {
+                try { $excel.Quit() } catch {}
+            }
+
             $excelAvailable = $false
         }
     }
