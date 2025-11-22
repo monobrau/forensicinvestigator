@@ -24,6 +24,9 @@
 .PARAMETER UploadUrl
     URL to upload results to (requires -UploadResults)
 
+.PARAMETER CleanupTools
+    Delete Sysinternals tools after analysis completes
+
 .EXAMPLE
     # Direct execution
     .\Remote-Launch.ps1 -EnableVirusTotal -VirusTotalApiKey "your-key"
@@ -39,6 +42,10 @@
 .EXAMPLE
     # ConnectWise Command - One-liner
     powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
+
+.EXAMPLE
+    # With tool cleanup (leaves no trace)
+    .\Remote-Launch.ps1 -CleanupTools -EnableVirusTotal
 #>
 
 [CmdletBinding()]
@@ -60,6 +67,9 @@ param(
 
     [Parameter(Mandatory=$false)]
     [string]$UploadUrl = "",
+
+    [Parameter(Mandatory=$false)]
+    [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Invoke-ForensicAnalysis.ps1"
@@ -176,6 +186,11 @@ if ($EnableVirusTotal -and ![string]::IsNullOrWhiteSpace($VirusTotalApiKey)) {
     Write-Log "VirusTotal scanning: ENABLED" "SUCCESS"
 } else {
     Write-Log "VirusTotal scanning: DISABLED" "WARN"
+}
+
+if ($CleanupTools) {
+    $params.CleanupTools = $true
+    Write-Log "Tool cleanup: ENABLED" "INFO"
 }
 
 # Execute the forensic analysis

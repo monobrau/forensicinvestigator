@@ -18,11 +18,17 @@
 .PARAMETER ToolsPath
     Directory where Sysinternals tools will be downloaded. Defaults to .\SysinternalsTools
 
+.PARAMETER CleanupTools
+    Switch to delete Sysinternals tools folder after analysis completes
+
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -EnableVirusTotal -VirusTotalApiKey "your-api-key"
 
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -OutputPath "C:\Reports"
+
+.EXAMPLE
+    .\Invoke-ForensicAnalysis.ps1 -CleanupTools
 #>
 
 [CmdletBinding()]
@@ -37,7 +43,10 @@ param(
     [switch]$EnableVirusTotal,
 
     [Parameter(Mandatory=$false)]
-    [string]$ToolsPath = ".\SysinternalsTools"
+    [string]$ToolsPath = ".\SysinternalsTools",
+
+    [Parameter(Mandatory=$false)]
+    [switch]$CleanupTools
 )
 
 #Requires -RunAsAdministrator
@@ -1026,8 +1035,35 @@ try {
     Write-ColoredMessage "`n=== Forensic Analysis Complete ===" -Color Cyan
     Write-ColoredMessage "Report(s): $reportPath" -Color Green
 
+    # Cleanup Sysinternals tools if requested
+    if ($CleanupTools) {
+        Write-ColoredMessage "`n[*] Cleaning up Sysinternals tools..." -Color Yellow
+        if (Test-Path $ToolsPath) {
+            try {
+                Remove-Item -Path $ToolsPath -Recurse -Force -ErrorAction Stop
+                Write-ColoredMessage "[+] Sysinternals tools deleted successfully" -Color Green
+            } catch {
+                Write-ColoredMessage "[!] Warning: Failed to delete tools directory: $_" -Color Yellow
+            }
+        } else {
+            Write-ColoredMessage "[*] Tools directory not found, nothing to clean up" -Color Gray
+        }
+    }
+
 } catch {
     Write-ColoredMessage "`n[!] Fatal Error: $_" -Color Red
     Write-ColoredMessage $_.ScriptStackTrace -Color Red
+
+    # Cleanup tools even on error if requested
+    if ($CleanupTools -and (Test-Path $ToolsPath)) {
+        Write-ColoredMessage "`n[*] Cleaning up Sysinternals tools (error cleanup)..." -Color Yellow
+        try {
+            Remove-Item -Path $ToolsPath -Recurse -Force -ErrorAction SilentlyContinue
+            Write-ColoredMessage "[+] Sysinternals tools deleted" -Color Green
+        } catch {
+            # Silent failure on error cleanup
+        }
+    }
+
     exit 1
 }
