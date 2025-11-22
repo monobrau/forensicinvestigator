@@ -62,7 +62,7 @@ param(
     [string]$UploadUrl = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/claude/sysinternals-download-analyzer-01EbqkwEvJpPcVmcyF6NSXRf/Invoke-ForensicAnalysis.ps1"
 )
 
 function Write-Log {
