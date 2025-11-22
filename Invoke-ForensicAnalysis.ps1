@@ -832,8 +832,13 @@ function Export-ToExcel {
         $usedRange.EntireColumn.AutoFit() | Out-Null
 
         # Save and close
-        $workbook.SaveAs($FilePath)
-        $workbook.Close()
+        # Use Save() for existing files, SaveAs() for new files
+        if (Test-Path $FilePath) {
+            $workbook.Save()
+        } else {
+            $workbook.SaveAs($FilePath)
+        }
+        $workbook.Close($false)  # $false = don't save again
         $excel.Quit()
 
         # Clean up COM objects
@@ -847,6 +852,12 @@ function Export-ToExcel {
 
     } catch {
         Write-ColoredMessage "[!] Excel export error: $_" -Color Red
+        if ($workbook) {
+            try { $workbook.Close($false) } catch {}
+        }
+        if ($excel) {
+            try { $excel.Quit() } catch {}
+        }
         return $false
     }
 }
