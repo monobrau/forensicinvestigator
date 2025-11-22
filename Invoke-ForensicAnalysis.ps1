@@ -296,7 +296,8 @@ function Get-AutorunEntries {
 
     try {
         # Accept EULA automatically with -accepteula
-        $output = & $autorunsc -accepteula -a * -c -h -s -v '*' 2>&1 | Out-String
+        # Removed -h (hash calculated later) and -v (signature verification - slow/network dependent)
+        $output = & $autorunsc -accepteula -a * -c -s 2>&1 | Out-String
 
         $entries = @()
         $lines = $output -split "`n" | Where-Object { $_ -match '\S' }
