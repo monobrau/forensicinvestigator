@@ -302,50 +302,56 @@ function Get-AutorunEntries {
         # Create temp file for autorunsc output (handles UTF-16 encoding properly)
         $tempCsvPath = Join-Path $env:TEMP "autorunsc_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').csv"
 
-        # Run autorunsc in a job so we can monitor it
-        $job = Start-Job -ScriptBlock {
-            param($exePath, $outputPath)
-            & $exePath -accepteula -a * -c -s 2>&1 | Out-File -FilePath $outputPath -Encoding unicode
-        } -ArgumentList $autorunsc, $tempCsvPath
+        # Use cmd.exe with native redirection to preserve autorunsc's UTF-16 output
+        # This avoids PowerShell's encoding conversion issues
+        $cmdLine = "cmd.exe /c `"`"$autorunsc`" -accepteula -a * -c -s > `"$tempCsvPath`"`""
+
+        Write-Host "[DEBUG] Running: $cmdLine" -ForegroundColor Gray
+
+        # Start the process in background
+        $startTime = Get-Date
+        $processInfo = Start-Process -FilePath "cmd.exe" `
+            -ArgumentList "/c `"`"$autorunsc`" -accepteula -a * -c -s > `"$tempCsvPath`"`"" `
+            -NoNewWindow `
+            -PassThru
+
+        Write-Host "[*] Autorunsc process started (PID: $($processInfo.Id))" -ForegroundColor Green
 
         # Monitor the process
-        $startTime = Get-Date
         $lastCpu = 0
-        $monitorCount = 0
 
-        while ($job.State -eq 'Running') {
+        while (!$processInfo.HasExited) {
             Start-Sleep -Seconds 5
-            $monitorCount++
 
-            # Find the autorunsc process
-            $proc = Get-Process -Name "autorunsc*" -ErrorAction SilentlyContinue
+            try {
+                # Find autorunsc process (child of cmd.exe)
+                $proc = Get-Process -Name "autorunsc*" -ErrorAction SilentlyContinue
+                if ($proc) {
+                    $runtime = (Get-Date) - $startTime
+                    $cpuTime = [math]::Round($proc.CPU, 2)
+                    $cpuDelta = $cpuTime - $lastCpu
+                    $memoryMB = [math]::Round($proc.WS / 1MB, 2)
 
-            if ($proc) {
-                $runtime = (Get-Date) - $startTime
-                $cpuTime = [math]::Round($proc.CPU, 2)
-                $cpuDelta = $cpuTime - $lastCpu
-                $memoryMB = [math]::Round($proc.WS / 1MB, 2)
+                    # Determine status based on CPU delta
+                    $status = if ($cpuDelta -gt 0.1) { "WORKING" } else { "IDLE?" }
+                    $color = if ($cpuDelta -gt 0.1) { "Green" } else { "Yellow" }
 
-                # Determine status based on CPU delta
-                $status = if ($cpuDelta -gt 0.1) { "WORKING" } else { "IDLE?" }
-                $color = if ($cpuDelta -gt 0.1) { "Green" } else { "Yellow" }
+                    Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Runtime: $([math]::Round($runtime.TotalMinutes,1))min | CPU: ${cpuTime}s (Δ+${cpuDelta}s) | Memory: ${memoryMB}MB | Status: $status" -ForegroundColor $color -NoNewline
 
-                Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Runtime: $([math]::Round($runtime.TotalMinutes,1))min | CPU: ${cpuTime}s (Δ+${cpuDelta}s) | Memory: ${memoryMB}MB | Status: $status" -ForegroundColor $color -NoNewline
-
-                $lastCpu = $cpuTime
-            } else {
-                Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Waiting for autorunsc process to start..." -ForegroundColor Gray -NoNewline
+                    $lastCpu = $cpuTime
+                }
+            } catch {
+                # Process may have just exited
             }
         }
 
         Write-Host "" # New line after monitoring
 
-        # Wait for job to complete
-        $jobResult = Receive-Job $job -Wait
-        Remove-Job $job -Force
+        # Wait for process to complete
+        $processInfo.WaitForExit()
 
         $totalTime = (Get-Date) - $startTime
-        Write-ColoredMessage "[+] Autorunsc completed in $([math]::Round($totalTime.TotalMinutes,1)) minutes" -Color Green
+        Write-ColoredMessage "[+] Autorunsc completed in $([math]::Round($totalTime.TotalMinutes,1)) minutes (Exit code: $($processInfo.ExitCode))" -Color Green
 
         $entries = @()
 
@@ -355,7 +361,11 @@ function Get-AutorunEntries {
             return @()
         }
 
-        # Read as UTF-16 (unicode) which is what autorunsc outputs
+        # Check file size
+        $fileSize = (Get-Item $tempCsvPath).Length
+        Write-Host "[DEBUG] CSV file size: $fileSize bytes" -ForegroundColor Gray
+
+        # Read as UTF-16 LE (which is what autorunsc outputs with -c flag)
         $lines = Get-Content -Path $tempCsvPath -Encoding Unicode | Where-Object { ![string]::IsNullOrWhiteSpace($_) }
 
         if ($lines.Count -lt 2) {
