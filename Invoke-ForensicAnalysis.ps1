@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "1.0.5-TypeCasting-20250123"
+$script:Version = "1.0.6-FixedActualExport-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -977,13 +977,13 @@ function Export-Results {
                 $worksheet = $wb.Worksheets.Add()
                 $worksheet.Name = $sheetName
 
-                # Get column headers
-                $properties = $data[0].PSObject.Properties.Name
-                $rowCount = $data.Count
-                $colCount = $properties.Count
+                # Get column headers with explicit type casting
+                $properties = @([string[]]@($data[0].PSObject.Properties.Name))
+                $rowCount = [int]$data.Count
+                $colCount = [int]$properties.Count
 
                 # Build 2D array for bulk write
-                $dataArray = New-Object 'object[,]' ($rowCount + 1), $colCount
+                $dataArray = New-Object 'object[,]' ([int]($rowCount + 1)), ([int]$colCount)
 
                 # Add headers
                 for ($col = 0; $col -lt $colCount; $col++) {
@@ -1006,13 +1006,13 @@ function Export-Results {
                     }
                 }
 
-                # Calculate Excel column letter
+                # Calculate Excel column letter with explicit type casting
                 $endColumnLetter = ""
-                $colNum = $colCount
+                $colNum = [int]$colCount
                 while ($colNum -gt 0) {
-                    $modulo = ($colNum - 1) % 26
-                    $endColumnLetter = [char](65 + $modulo) + $endColumnLetter
-                    $colNum = [math]::Floor(($colNum - $modulo) / 26)
+                    $modulo = [int](($colNum - 1) % 26)
+                    $endColumnLetter = [string]([char](65 + $modulo)) + $endColumnLetter
+                    $colNum = [int][math]::Floor(($colNum - $modulo) / 26)
                 }
 
                 # Write data in ONE operation
