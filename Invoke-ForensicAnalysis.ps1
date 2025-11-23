@@ -62,7 +62,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.1.0-AddedCombinedWorkbookOption-20250123"
+$script:Version = "2.1.1-FixedSeparateFilesPath-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -1115,9 +1115,12 @@ function Export-Results {
         # Export to separate Excel files (faster than combined workbook)
         $excelPaths = @()
 
+        # Resolve absolute path once
+        $absoluteOutputPath = (Resolve-Path -Path $OutputPath).Path
+
         try {
             if ($AutorunEntries.Count -gt 0) {
-                $excelPath = Join-Path $OutputPath "${hostname}_Autoruns_${timestamp}.xlsx"
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Autoruns_${timestamp}.xlsx"
                 if (Export-ToExcel -Data $AutorunEntries -FilePath $excelPath -WorksheetName "Autoruns") {
                     Write-ColoredMessage "[+] Autoruns Excel saved: $excelPath" -Color Green
                     $excelPaths += $excelPath
@@ -1125,7 +1128,7 @@ function Export-Results {
             }
 
             if ($ServiceEntries.Count -gt 0) {
-                $excelPath = Join-Path $OutputPath "${hostname}_Services_${timestamp}.xlsx"
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Services_${timestamp}.xlsx"
                 if (Export-ToExcel -Data $ServiceEntries -FilePath $excelPath -WorksheetName "Services") {
                     Write-ColoredMessage "[+] Services Excel saved: $excelPath" -Color Green
                     $excelPaths += $excelPath
@@ -1133,7 +1136,7 @@ function Export-Results {
             }
 
             if ($NetworkEntries.Count -gt 0) {
-                $excelPath = Join-Path $OutputPath "${hostname}_Network_${timestamp}.xlsx"
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Network_${timestamp}.xlsx"
                 if (Export-ToExcel -Data $NetworkEntries -FilePath $excelPath -WorksheetName "Network") {
                     Write-ColoredMessage "[+] Network Excel saved: $excelPath" -Color Green
                     $excelPaths += $excelPath
@@ -1141,7 +1144,7 @@ function Export-Results {
             }
 
             if ($ProcessEntries.Count -gt 0) {
-                $excelPath = Join-Path $OutputPath "${hostname}_Processes_${timestamp}.xlsx"
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Processes_${timestamp}.xlsx"
                 if (Export-ToExcel -Data $ProcessEntries -FilePath $excelPath -WorksheetName "Processes") {
                     Write-ColoredMessage "[+] Processes Excel saved: $excelPath" -Color Green
                     $excelPaths += $excelPath
