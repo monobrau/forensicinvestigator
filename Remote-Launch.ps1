@@ -33,15 +33,15 @@
 
 .EXAMPLE
     # Via IEX from GitHub
-    iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+    iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
     # Via IEX with parameters
-    $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+    $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
     # ConnectWise Command - One-liner
-    powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+    powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
 
 .EXAMPLE
     # With tool cleanup (leaves no trace)
@@ -72,7 +72,7 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 )
 
 function Write-Log {
