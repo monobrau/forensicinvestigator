@@ -835,7 +835,14 @@ function Export-ToExcel {
             $item = $Data[$row]
             for ($col = 0; $col -lt $colCount; $col++) {
                 $value = $item.($properties[$col])
-                $dataArray[$row + 1, $col] = if ($value) { $value.ToString() } else { "" }
+                # Safely convert to string, handling arrays
+                if ($null -eq $value) {
+                    $dataArray[$row + 1, $col] = ""
+                } elseif ($value -is [Array]) {
+                    $dataArray[$row + 1, $col] = ($value -join ', ')
+                } else {
+                    $dataArray[$row + 1, $col] = $value.ToString()
+                }
             }
         }
 
