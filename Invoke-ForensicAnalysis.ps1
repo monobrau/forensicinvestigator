@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "1.0.6-FixedActualExport-20250123"
+$script:Version = "1.0.7-SimplifiedPropertyExtraction-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -821,8 +821,12 @@ function Export-ToExcel {
             $worksheet.Cells.Clear()
         }
 
-        # Get column headers
-        $properties = @($Data[0].PSObject.Properties.Name)
+        # Get column headers - extract as simple string array
+        $propertyList = @()
+        foreach ($p in $Data[0].PSObject.Properties) {
+            $propertyList += [string]$p.Name
+        }
+        $properties = $propertyList
         $rowCount = [int]$Data.Count
         $colCount = [int]$properties.Count
 
@@ -977,8 +981,12 @@ function Export-Results {
                 $worksheet = $wb.Worksheets.Add()
                 $worksheet.Name = $sheetName
 
-                # Get column headers with explicit type casting
-                $properties = @([string[]]@($data[0].PSObject.Properties.Name))
+                # Get column headers - extract as simple string array
+                $propertyList = @()
+                foreach ($p in $data[0].PSObject.Properties) {
+                    $propertyList += [string]$p.Name
+                }
+                $properties = $propertyList
                 $rowCount = [int]$data.Count
                 $colCount = [int]$properties.Count
 
