@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "1.0.7-SimplifiedPropertyExtraction-20250123"
+$script:Version = "1.0.8-UltraDefensiveConversion-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -838,18 +838,20 @@ function Export-ToExcel {
             $dataArray[0, $col] = $properties[$col]
         }
 
-        # Add data rows
+        # Add data rows - ultra-defensive value conversion
         for ($row = 0; $row -lt $rowCount; $row++) {
             $item = $Data[$row]
             for ($col = 0; $col -lt $colCount; $col++) {
                 $value = $item.($properties[$col])
-                # Safely convert to string, handling arrays
-                if ($null -eq $value) {
-                    $dataArray[$row + 1, $col] = ""
-                } elseif ($value -is [Array]) {
-                    $dataArray[$row + 1, $col] = ($value -join ', ')
+                # Convert EVERYTHING to simple string, no matter what
+                if ($null -eq $value -or $value -eq '') {
+                    $dataArray[$row + 1, $col] = ''
+                } elseif ($value -is [Array] -or $value -is [System.Collections.IEnumerable] -and $value -isnot [string]) {
+                    # Handle arrays and collections (but not strings which are IEnumerable)
+                    $dataArray[$row + 1, $col] = [string]($value -join ', ')
                 } else {
-                    $dataArray[$row + 1, $col] = $value.ToString()
+                    # Force to string using string format operator
+                    $dataArray[$row + 1, $col] = "$value"
                 }
             }
         }
@@ -998,18 +1000,20 @@ function Export-Results {
                     $dataArray[0, $col] = $properties[$col]
                 }
 
-                # Add data rows
+                # Add data rows - ultra-defensive value conversion
                 for ($row = 0; $row -lt $rowCount; $row++) {
                     $item = $data[$row]
                     for ($col = 0; $col -lt $colCount; $col++) {
                         $value = $item.($properties[$col])
-                        # Safely convert to string, handling arrays
-                        if ($null -eq $value) {
-                            $dataArray[$row + 1, $col] = ""
-                        } elseif ($value -is [Array]) {
-                            $dataArray[$row + 1, $col] = ($value -join ', ')
+                        # Convert EVERYTHING to simple string, no matter what
+                        if ($null -eq $value -or $value -eq '') {
+                            $dataArray[$row + 1, $col] = ''
+                        } elseif ($value -is [Array] -or $value -is [System.Collections.IEnumerable] -and $value -isnot [string]) {
+                            # Handle arrays and collections (but not strings which are IEnumerable)
+                            $dataArray[$row + 1, $col] = [string]($value -join ', ')
                         } else {
-                            $dataArray[$row + 1, $col] = $value.ToString()
+                            # Force to string using string format operator
+                            $dataArray[$row + 1, $col] = "$value"
                         }
                     }
                 }
