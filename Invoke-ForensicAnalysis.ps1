@@ -62,7 +62,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.1.3-FixedCSVFallback-20250123"
+$script:Version = "2.1.4-FixedEncodingAndCSV-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -357,7 +357,7 @@ function Get-AutorunEntries {
                     $status = if ($cpuDelta -gt 0.1) { "WORKING" } else { "IDLE?" }
                     $color = if ($cpuDelta -gt 0.1) { "Green" } else { "Yellow" }
 
-                    Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Runtime: $([math]::Round($runtime.TotalMinutes,1))min | CPU: ${cpuTime}s (Δ+${cpuDelta}s) | Memory: ${memoryMB}MB | Status: $status" -ForegroundColor $color -NoNewline
+                    Write-Host "`r[$(Get-Date -Format 'HH:mm:ss')] Runtime: $([math]::Round($runtime.TotalMinutes,1))min | CPU: ${cpuTime}s (+${cpuDelta}s) | Memory: ${memoryMB}MB | Status: $status" -ForegroundColor $color -NoNewline
 
                     $lastCpu = $cpuTime
                 }
