@@ -83,26 +83,36 @@ This will:
 
 ## Remote Deployment
 
-The tool supports remote deployment via IEX (Invoke-Expression) and RMM platforms like ConnectWise, Datto, and NinjaRMM.
+The tool supports remote deployment via ScreenConnect and direct PowerShell execution.
 
-### Quick Remote Execution
+### Tested & Verified Methods
 
-**Via IEX (replace URL with your hosted script):**
+#### Direct Download & Execute (✅ Tested)
+
+Download the main script directly and run with custom parameters:
+
 ```powershell
-# Basic execution
-iex (irm "https://raw.githubusercontent.com/yourusername/forensicinvestigator/main/Remote-Launch.ps1")
-
-# With VirusTotal API key
-$env:VT_API_KEY = "your-api-key"
-iex (irm "https://your-url/Remote-Launch.ps1")
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
-**One-liner for RMM platforms:**
+**Benefits:**
+- No encoding issues
+- Direct access to all parameters
+- Works in ScreenConnect and regular PowerShell
+- Custom output paths supported
+
+**All Parameters Available:**
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-key'; iex (irm 'https://your-url/Remote-Launch.ps1')"
+-OutputPath "C:\SecurityReports"        # Custom output location
+-ToolsPath "C:\Tools"                   # Custom tools location
+-EnableVirusTotal                       # Enable malware scanning
+-VirusTotalApiKey "your-key"           # VT API key
+-CleanupTools                          # Delete tools after scan
+-CombinedWorkbook                      # Single Excel file (slower)
 ```
 
-### ConnectWise ScreenConnect Commands
+### ConnectWise ScreenConnect Commands (✅ Tested)
 
 ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts remotely. Choose the method that best fits your needs.
 
@@ -110,118 +120,69 @@ ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts r
 
 1. **Connect to the target machine** in ScreenConnect
 2. Click the **Commands** button (or press F5)
-3. Paste one of the commands below (ScreenConnect will auto-detect the `#!ps` prefix)
+3. Paste one of the tested commands below (ScreenConnect will auto-detect the `#!ps` prefix)
 4. Press **Enter** or click **Run**
 
-#### Getting Your Script URL
+**Note:** Replace `YOUR_USERNAME` in the URLs below with your GitHub username (or use the full URL to your hosted script location).
 
-Replace `YOUR_USERNAME/forensicinvestigator` with your actual GitHub repository path:
+#### Recommended Commands (Tested ✅)
 
-- **GitHub (Public Repo)**: `https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1`
-- **GitHub (Private Repo)**: Use a GitHub Personal Access Token
-- **Self-Hosted**: `https://yourdomain.com/path/to/Remote-Launch.ps1`
-- **Local Network**: `http://192.168.1.100/Remote-Launch.ps1`
-
-#### Command Options
-
-**Option 1: Basic Scan (No VirusTotal)**
+**Option 1: Basic Scan with Custom Output Path**
 ```powershell
 #!ps
-iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
+- ✅ Verified working in ScreenConnect
 - Fast execution (2-5 minutes)
-- No malware scanning
-- Creates Excel or CSV reports
+- Saves to easy-to-find location
+- No encoding issues
 
-**Option 2: With VirusTotal Scanning**
+**Option 2: Default Output Location**
 ```powershell
 #!ps
-$env:VT_API_KEY = "your-virustotal-api-key-here"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1"
+```
+- Saves to `C:\Windows\Temp\ForensicReports\` (when running as SYSTEM)
+- Otherwise saves to `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\`
+
+**Option 3: Combined Workbook (Single Excel File)**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+```
+- Creates one Excel file with all worksheets
+- Slower than separate files
+- Easier to manage and transfer
+
+**Option 4: With VirusTotal Scanning**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -EnableVirusTotal -VirusTotalApiKey "your-api-key" -OutputPath "C:\SecurityReports"
 ```
 - Scans all executables for malware
 - Takes 30-60+ minutes (API rate limited)
 - Requires free VirusTotal API key
 
-**Option 3: Using PowerShell Direct Call**
-```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
-```
-- Alternative method without `#!ps` prefix
-- Explicitly calls PowerShell executable
-- Bypasses execution policy restrictions
-
-**Option 4: With VirusTotal (PowerShell 7)**
-```powershell
-pwsh.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-api-key'; iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
-```
-- Uses PowerShell 7 (if installed)
-- Includes VirusTotal API key
-- Faster performance on modern systems
-
-**Option 5: Custom Output Path**
-```powershell
-#!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports"
-```
-- Saves reports to specific directory (e.g., C:\SecurityReports)
-- Useful for centralized report collection
-- Creates directory if it doesn't exist
-
-**Option 6: Custom Path + VirusTotal**
-```powershell
-#!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports" -EnableVirusTotal -VirusTotalApiKey "your-api-key"
-```
-- Custom output location with malware scanning
-- All parameters supported: `-OutputPath`, `-ToolsPath`, `-CleanupTools`, etc.
-
-#### ScreenConnect Command Templates
-
-For **one-time execution**, copy and paste into the ScreenConnect command box:
-
-```powershell
-# Template 1: Basic (fastest) - Using #!ps prefix
-#!ps
-iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
-```
-
-```powershell
-# Template 2: With VirusTotal - Using #!ps prefix
-#!ps
-$env:VT_API_KEY = "YOUR_VT_API_KEY"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
-```
-
-```powershell
-# Template 3: Using direct PowerShell call
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
-```
-
-```powershell
-# Template 4: Custom output path (saves to C:\SecurityReports)
-#!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports"
-```
-
-For **saving as a ScreenConnect Command** (reusable):
+#### Saving as Reusable ScreenConnect Command
 
 1. In ScreenConnect, go to **Admin** → **Command Toolbox**
 2. Click **Add Command**
 3. Name it: `Forensic Scan - Basic`
 4. Command Type: **PowerShell** (or leave as Command)
-5. Paste one of these:
+5. Paste the tested command:
 
-**Using #!ps prefix:**
 ```powershell
 #!ps
-iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
-```
-
-**Using direct call:**
-```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 6. Save and run from the Commands menu anytime
+
+**For Combined Workbook Version:**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+```
 
 #### Retrieving Reports
 
@@ -286,39 +247,6 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "htt
 - This is normal for VirusTotal scans (can take 30-60 minutes)
 - Check CPU usage - if active, it's still running
 - Without VT, should complete in 2-5 minutes
-
-### ConnectWise Automate
-
-Create a PowerShell script with:
-```powershell
-$ScriptUrl = "https://your-url/Remote-Launch.ps1"
-$VTApiKey = "@VT_API_KEY@"  # Automate variable
-
-$script = Invoke-RestMethod -Uri $ScriptUrl -UseBasicParsing
-$tempScript = "$env:TEMP\forensic.ps1"
-$script | Out-File -FilePath $tempScript -Encoding UTF8
-
-& $tempScript -EnableVirusTotal -VirusTotalApiKey $VTApiKey
-
-Remove-Item $tempScript -Force
-```
-
-### Other RMM Platforms
-
-See **[DEPLOYMENT.md](DEPLOYMENT.md)** for detailed instructions for:
-- **Datto RMM**
-- **NinjaRMM**
-- **Kaseya VSA**
-- **Syncro**
-- **Atera**
-- **N-able N-central**
-
-The deployment guide includes:
-- Platform-specific script templates
-- Variable/parameter configuration
-- Scheduling and automation setup
-- Security best practices
-- Troubleshooting tips
 
 ## Getting a VirusTotal API Key
 
