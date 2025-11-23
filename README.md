@@ -110,9 +110,8 @@ ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts r
 
 1. **Connect to the target machine** in ScreenConnect
 2. Click the **Commands** button (or press F5)
-3. Select **PowerShell** from the dropdown
-4. Paste one of the commands below
-5. Press **Enter** or click **Run**
+3. Paste one of the commands below (ScreenConnect will auto-detect the `#!ps` prefix)
+4. Press **Enter** or click **Run**
 
 #### Getting Your Script URL
 
@@ -127,6 +126,7 @@ Replace `YOUR_USERNAME/forensicinvestigator` with your actual GitHub repository 
 
 **Option 1: Basic Scan (No VirusTotal)**
 ```powershell
+#!ps
 iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 - Fast execution (2-5 minutes)
@@ -135,46 +135,48 @@ iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/m
 
 **Option 2: With VirusTotal Scanning**
 ```powershell
+#!ps
 $env:VT_API_KEY = "your-virustotal-api-key-here"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 - Scans all executables for malware
 - Takes 30-60+ minutes (API rate limited)
 - Requires free VirusTotal API key
 
-**Option 3: With Tool Cleanup (No Trace)**
+**Option 3: Using PowerShell Direct Call**
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')" -CleanupTools
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
 ```
-- Deletes Sysinternals tools after completion
-- Leaves only the report
-- Useful for compliance/cleanup
+- Alternative method without `#!ps` prefix
+- Explicitly calls PowerShell executable
+- Bypasses execution policy restrictions
 
-**Option 4: Custom Output Location**
+**Option 4: With VirusTotal (PowerShell 7)**
 ```powershell
-iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1"); Invoke-ForensicAnalysis -OutputPath "C:\SecurityReports"
+pwsh.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-api-key'; iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
 ```
-- Saves reports to specific directory
-- Useful for centralized report collection
-
-**Option 5: Full Featured (VT + Cleanup + Custom Path)**
-```powershell
-$env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
-```
-Then manually add `-CleanupTools -OutputPath "C:\Reports"` to the execution.
+- Uses PowerShell 7 (if installed)
+- Includes VirusTotal API key
+- Faster performance on modern systems
 
 #### ScreenConnect Command Templates
 
-For **one-time execution**, copy and paste into the PowerShell command box:
+For **one-time execution**, copy and paste into the ScreenConnect command box:
 
 ```powershell
-# Template 1: Basic (fastest)
+# Template 1: Basic (fastest) - Using #!ps prefix
+#!ps
 iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
 
-# Template 2: With VirusTotal
+```powershell
+# Template 2: With VirusTotal - Using #!ps prefix
+#!ps
 $env:VT_API_KEY = "YOUR_VT_API_KEY"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
 
-# Template 3: Silent cleanup
-iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1") -CleanupTools
+```powershell
+# Template 3: Using direct PowerShell call
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
 ```
 
 For **saving as a ScreenConnect Command** (reusable):
@@ -182,11 +184,20 @@ For **saving as a ScreenConnect Command** (reusable):
 1. In ScreenConnect, go to **Admin** → **Command Toolbox**
 2. Click **Add Command**
 3. Name it: `Forensic Scan - Basic`
-4. Command Type: **PowerShell**
-5. Paste:
+4. Command Type: **PowerShell** (or leave as Command)
+5. Paste one of these:
+
+**Using #!ps prefix:**
 ```powershell
+#!ps
 iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
+
+**Using direct call:**
+```powershell
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+```
+
 6. Save and run from the Commands menu anytime
 
 #### Retrieving Reports
@@ -204,7 +215,15 @@ To retrieve reports via ScreenConnect:
 #### Troubleshooting ScreenConnect Commands
 
 **Error: "Execution Policy Restricted"**
+
+Try using the direct PowerShell call method:
 ```powershell
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+```
+
+Or with `#!ps` prefix:
+```powershell
+#!ps
 Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
 
@@ -218,6 +237,13 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "htt
 - The script will auto-elevate if possible
 - Ensure ScreenConnect session has admin rights
 - Or manually run ScreenConnect as admin
+
+**Error: "#!ps not recognized"**
+- Try using the direct PowerShell call method instead:
+  ```
+  powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'URL')"
+  ```
+- Or use `pwsh.exe` for PowerShell 7
 
 **Command appears to hang**
 - This is normal for VirusTotal scans (can take 30-60 minutes)
