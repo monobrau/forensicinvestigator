@@ -158,6 +158,23 @@ pwsh.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-api-
 - Includes VirusTotal API key
 - Faster performance on modern systems
 
+**Option 5: Custom Output Path**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports"
+```
+- Saves reports to specific directory (e.g., C:\SecurityReports)
+- Useful for centralized report collection
+- Creates directory if it doesn't exist
+
+**Option 6: Custom Path + VirusTotal**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports" -EnableVirusTotal -VirusTotalApiKey "your-api-key"
+```
+- Custom output location with malware scanning
+- All parameters supported: `-OutputPath`, `-ToolsPath`, `-CleanupTools`, etc.
+
 #### ScreenConnect Command Templates
 
 For **one-time execution**, copy and paste into the ScreenConnect command box:
@@ -177,6 +194,12 @@ $env:VT_API_KEY = "YOUR_VT_API_KEY"; iex (irm "https://raw.githubusercontent.com
 ```powershell
 # Template 3: Using direct PowerShell call
 powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+```
+
+```powershell
+# Template 4: Custom output path (saves to C:\SecurityReports)
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -OutFile "$env:TEMP\RL.ps1"; & "$env:TEMP\RL.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 For **saving as a ScreenConnect Command** (reusable):
@@ -203,14 +226,28 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://ra
 #### Retrieving Reports
 
 After execution completes, reports are saved to:
-- **Default Location**: `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\`
-- **Custom Location**: Path specified with `-OutputPath`
+- **Default Location**: `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\` (or `C:\Windows\Temp\ForensicReports\` if running as SYSTEM)
+- **Custom Location**: Path specified with `-OutputPath` parameter (e.g., `-OutputPath "C:\SecurityReports"`)
+
+**Setting Custom Output Path:**
+```powershell
+# Example: Save to C:\SecurityReports
+-OutputPath "C:\SecurityReports"
+
+# Example: Save to network share
+-OutputPath "\\server\share\ForensicReports"
+
+# Example: Save to user desktop
+-OutputPath "$env:USERPROFILE\Desktop\ForensicReports"
+```
 
 To retrieve reports via ScreenConnect:
 1. Open **File Manager** in the session
-2. Navigate to the report directory
+2. Navigate to the report directory (default or custom path)
 3. Download the `.xlsx` or `.csv` files
 4. Or use ScreenConnect's **Transfer Files** feature
+
+**Tip:** Using a custom output path like `C:\SecurityReports` makes finding and transferring reports much easier than the default temp directory.
 
 #### Troubleshooting ScreenConnect Commands
 
