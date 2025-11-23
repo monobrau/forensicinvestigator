@@ -51,6 +51,9 @@ param(
 
 #Requires -RunAsAdministrator
 
+# Script version - for verification
+$script:Version = "1.0.4-ArrayFix-20250123"
+
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
 $script:VTEnabled = $EnableVirusTotal -and ![string]::IsNullOrWhiteSpace($VirusTotalApiKey)
@@ -103,6 +106,7 @@ function Write-ColoredMessage {
 
 function Initialize-Environment {
     Write-ColoredMessage "`n=== Forensic Investigation Tool ===" -Color Cyan
+    Write-ColoredMessage "Version: $script:Version" -Color Gray
     Write-ColoredMessage "Initializing environment...`n" -Color Cyan
 
     # Create directories
