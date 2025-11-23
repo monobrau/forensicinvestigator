@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "1.0.8-UltraDefensiveConversion-20250123"
+$script:Version = "2.0.0-RefactoredExcelExport-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -971,7 +971,7 @@ function Export-Results {
             # Create workbook ONCE
             $workbook = $excel.Workbooks.Add()
 
-            # Helper function to add worksheet with data
+            # Helper function to add worksheet with data - REFACTORED for reliability
             $addWorksheet = {
                 param($wb, $data, $sheetName)
 
@@ -983,63 +983,52 @@ function Export-Results {
                 $worksheet = $wb.Worksheets.Add()
                 $worksheet.Name = $sheetName
 
-                # Get column headers - extract as simple string array
-                $propertyList = @()
-                foreach ($p in $data[0].PSObject.Properties) {
-                    $propertyList += [string]$p.Name
+                # Convert data to CSV format first (safer than direct Excel manipulation)
+                $csvData = $data | ConvertTo-Csv -NoTypeInformation
+
+                # Parse CSV to get clean string data
+                $csvLines = $csvData
+                $headers = $csvLines[0] -split ',' | ForEach-Object { $_.Trim('"') }
+
+                # Write headers
+                for ($col = 0; $col -lt $headers.Count; $col++) {
+                    $worksheet.Cells.Item(1, $col + 1) = $headers[$col]
                 }
-                $properties = $propertyList
-                $rowCount = [int]$data.Count
-                $colCount = [int]$properties.Count
-
-                # Build 2D array for bulk write
-                $dataArray = New-Object 'object[,]' ([int]($rowCount + 1)), ([int]$colCount)
-
-                # Add headers
-                for ($col = 0; $col -lt $colCount; $col++) {
-                    $dataArray[0, $col] = $properties[$col]
-                }
-
-                # Add data rows - ultra-defensive value conversion
-                for ($row = 0; $row -lt $rowCount; $row++) {
-                    $item = $data[$row]
-                    for ($col = 0; $col -lt $colCount; $col++) {
-                        $value = $item.($properties[$col])
-                        # Convert EVERYTHING to simple string, no matter what
-                        if ($null -eq $value -or $value -eq '') {
-                            $dataArray[$row + 1, $col] = ''
-                        } elseif ($value -is [Array] -or $value -is [System.Collections.IEnumerable] -and $value -isnot [string]) {
-                            # Handle arrays and collections (but not strings which are IEnumerable)
-                            $dataArray[$row + 1, $col] = [string]($value -join ', ')
-                        } else {
-                            # Force to string using string format operator
-                            $dataArray[$row + 1, $col] = "$value"
-                        }
-                    }
-                }
-
-                # Calculate Excel column letter with explicit type casting
-                $endColumnLetter = ""
-                $colNum = [int]$colCount
-                while ($colNum -gt 0) {
-                    $modulo = [int](($colNum - 1) % 26)
-                    $endColumnLetter = [string]([char](65 + $modulo)) + $endColumnLetter
-                    $colNum = [int][math]::Floor(($colNum - $modulo) / 26)
-                }
-
-                # Write data in ONE operation
-                $range = $worksheet.Range("A1:$endColumnLetter$($rowCount + 1)")
-                $range.Value2 = $dataArray
 
                 # Format header row
-                $headerRange = $worksheet.Range("A1:$endColumnLetter`1")
-                $headerRange.Font.Bold = $true
-                $headerRange.Interior.ColorIndex = 15  # Gray
+                $headerRow = $worksheet.Rows.Item(1)
+                $headerRow.Font.Bold = $true
+                $headerRow.Interior.ColorIndex = 15  # Gray
 
-                # Apply color coding based on RiskLevel
-                for ($row = 0; $row -lt $rowCount; $row++) {
-                    $riskLevel = $data[$row].RiskLevel
-                    $excelRow = $row + 2
+                # Write data rows
+                for ($row = 1; $row -lt $csvLines.Count; $row++) {
+                    $line = $csvLines[$row]
+                    # Simple CSV parsing - split by comma but respect quotes
+                    $values = @()
+                    $currentValue = ""
+                    $inQuotes = $false
+
+                    for ($i = 0; $i -lt $line.Length; $i++) {
+                        $char = $line[$i]
+                        if ($char -eq '"') {
+                            $inQuotes = -not $inQuotes
+                        } elseif ($char -eq ',' -and -not $inQuotes) {
+                            $values += $currentValue.Trim('"')
+                            $currentValue = ""
+                        } else {
+                            $currentValue += $char
+                        }
+                    }
+                    $values += $currentValue.Trim('"')
+
+                    # Write row
+                    for ($col = 0; $col -lt $values.Count; $col++) {
+                        $worksheet.Cells.Item($row + 1, $col + 1) = $values[$col]
+                    }
+
+                    # Apply color coding based on RiskLevel (column varies by sheet)
+                    $riskLevel = $data[$row - 1].RiskLevel
+                    $excelRow = $row + 1
 
                     switch ($riskLevel) {
                         "High" {
