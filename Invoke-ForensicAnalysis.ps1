@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "1.0.4-ArrayFix-20250123"
+$script:Version = "1.0.5-TypeCasting-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -822,12 +822,12 @@ function Export-ToExcel {
         }
 
         # Get column headers
-        $properties = $Data[0].PSObject.Properties.Name
-        $rowCount = $Data.Count
-        $colCount = $properties.Count
+        $properties = @($Data[0].PSObject.Properties.Name)
+        $rowCount = [int]$Data.Count
+        $colCount = [int]$properties.Count
 
         # Build 2D array for bulk write (MUCH faster than cell-by-cell)
-        $dataArray = New-Object 'object[,]' ($rowCount + 1), $colCount
+        $dataArray = New-Object 'object[,]' ([int]($rowCount + 1)), ([int]$colCount)
 
         # Add headers to first row
         for ($col = 0; $col -lt $colCount; $col++) {
@@ -853,11 +853,11 @@ function Export-ToExcel {
         # Write entire array to Excel in ONE operation (10-100x faster!)
         # Convert column number to Excel letter (handles beyond Z: AA, AB, etc.)
         $endColumnLetter = ""
-        $colNum = $colCount
+        $colNum = [int]$colCount
         while ($colNum -gt 0) {
-            $modulo = ($colNum - 1) % 26
-            $endColumnLetter = [char](65 + $modulo) + $endColumnLetter
-            $colNum = [math]::Floor(($colNum - $modulo) / 26)
+            $modulo = [int](($colNum - 1) % 26)
+            $endColumnLetter = [string]([char](65 + $modulo)) + $endColumnLetter
+            $colNum = [int][math]::Floor(($colNum - $modulo) / 26)
         }
 
         $range = $worksheet.Range("A1:$endColumnLetter$($rowCount + 1)")
