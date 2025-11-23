@@ -21,6 +21,10 @@
 .PARAMETER CleanupTools
     Switch to delete Sysinternals tools folder after analysis completes
 
+.PARAMETER CombinedWorkbook
+    Switch to export to a single Excel workbook with all worksheets (slower but consolidated).
+    By default, exports to separate Excel files for faster performance.
+
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -EnableVirusTotal -VirusTotalApiKey "your-api-key"
 
@@ -29,6 +33,9 @@
 
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -CleanupTools
+
+.EXAMPLE
+    .\Invoke-ForensicAnalysis.ps1 -CombinedWorkbook
 #>
 
 [CmdletBinding()]
@@ -46,13 +53,16 @@ param(
     [string]$ToolsPath = ".\SysinternalsTools",
 
     [Parameter(Mandatory=$false)]
-    [switch]$CleanupTools
+    [switch]$CleanupTools,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$CombinedWorkbook
 )
 
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.0.1-FixedExcelSavePath-20250123"
+$script:Version = "2.1.1-FixedSeparateFilesPath-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -821,94 +831,78 @@ function Export-ToExcel {
             $worksheet.Cells.Clear()
         }
 
-        # Get column headers - extract as simple string array
-        $propertyList = @()
-        foreach ($p in $Data[0].PSObject.Properties) {
-            $propertyList += [string]$p.Name
+        # Convert data to CSV format first (safer and more reliable)
+        $csvData = $Data | ConvertTo-Csv -NoTypeInformation
+
+        # Parse CSV to get clean string data
+        $csvLines = $csvData
+        $headers = $csvLines[0] -split ',' | ForEach-Object { $_.Trim('"') }
+
+        # Write headers
+        for ($col = 0; $col -lt $headers.Count; $col++) {
+            $worksheet.Cells.Item(1, $col + 1) = $headers[$col]
         }
-        $properties = $propertyList
-        $rowCount = [int]$Data.Count
-        $colCount = [int]$properties.Count
-
-        # Build 2D array for bulk write (MUCH faster than cell-by-cell)
-        $dataArray = New-Object 'object[,]' ([int]($rowCount + 1)), ([int]$colCount)
-
-        # Add headers to first row
-        for ($col = 0; $col -lt $colCount; $col++) {
-            $dataArray[0, $col] = $properties[$col]
-        }
-
-        # Add data rows - ultra-defensive value conversion
-        for ($row = 0; $row -lt $rowCount; $row++) {
-            $item = $Data[$row]
-            for ($col = 0; $col -lt $colCount; $col++) {
-                $value = $item.($properties[$col])
-                # Convert EVERYTHING to simple string, no matter what
-                if ($null -eq $value -or $value -eq '') {
-                    $dataArray[$row + 1, $col] = ''
-                } elseif ($value -is [Array] -or $value -is [System.Collections.IEnumerable] -and $value -isnot [string]) {
-                    # Handle arrays and collections (but not strings which are IEnumerable)
-                    $dataArray[$row + 1, $col] = [string]($value -join ', ')
-                } else {
-                    # Force to string using string format operator
-                    $dataArray[$row + 1, $col] = "$value"
-                }
-            }
-        }
-
-        # Write entire array to Excel in ONE operation (10-100x faster!)
-        # Convert column number to Excel letter (handles beyond Z: AA, AB, etc.)
-        $endColumnLetter = ""
-        $colNum = [int]$colCount
-        while ($colNum -gt 0) {
-            $modulo = [int](($colNum - 1) % 26)
-            $endColumnLetter = [string]([char](65 + $modulo)) + $endColumnLetter
-            $colNum = [int][math]::Floor(($colNum - $modulo) / 26)
-        }
-
-        $range = $worksheet.Range("A1:$endColumnLetter$($rowCount + 1)")
-        $range.Value2 = $dataArray
 
         # Format header row
-        $headerRange = $worksheet.Range("A1:$endColumnLetter`1")
-        $headerRange.Font.Bold = $true
-        $headerRange.Interior.ColorIndex = 15  # Gray
+        $headerRow = $worksheet.Rows.Item(1)
+        $headerRow.Font.Bold = $true
+        $headerRow.Interior.ColorIndex = 15  # Gray
 
-        # Apply color coding based on RiskLevel (now must be done after data write)
-        for ($row = 0; $row -lt $rowCount; $row++) {
-            $riskLevel = $Data[$row].RiskLevel
-            $excelRow = $row + 2  # +2 because Excel is 1-based and row 1 is headers
+        # Write data rows
+        for ($row = 1; $row -lt $csvLines.Count; $row++) {
+            $line = $csvLines[$row]
+            # Simple CSV parsing - split by comma but respect quotes
+            $values = @()
+            $currentValue = ""
+            $inQuotes = $false
+
+            for ($i = 0; $i -lt $line.Length; $i++) {
+                $char = $line[$i]
+                if ($char -eq '"') {
+                    $inQuotes = -not $inQuotes
+                } elseif ($char -eq ',' -and -not $inQuotes) {
+                    $values += $currentValue.Trim('"')
+                    $currentValue = ""
+                } else {
+                    $currentValue += $char
+                }
+            }
+            $values += $currentValue.Trim('"')
+
+            # Write row
+            for ($col = 0; $col -lt $values.Count; $col++) {
+                $worksheet.Cells.Item($row + 1, $col + 1) = $values[$col]
+            }
+
+            # Apply color coding based on RiskLevel
+            $riskLevel = $Data[$row - 1].RiskLevel
+            $excelRow = $row + 1
 
             switch ($riskLevel) {
                 "High" {
                     $rowRange = $worksheet.Rows.Item($excelRow)
-                    $rowRange.Interior.Color = 255  # Red (BGR format)
+                    $rowRange.Interior.Color = 255  # Red
                     $rowRange.Font.Color = 16777215  # White
                 }
                 "Medium" {
                     $rowRange = $worksheet.Rows.Item($excelRow)
-                    $rowRange.Interior.Color = 65535  # Yellow (BGR format)
+                    $rowRange.Interior.Color = 65535  # Yellow
                     $rowRange.Font.Color = 0  # Black
                 }
                 "Low" {
                     $rowRange = $worksheet.Rows.Item($excelRow)
-                    $rowRange.Interior.Color = 5287936  # Green (BGR format)
+                    $rowRange.Interior.Color = 5287936  # Green
                     $rowRange.Font.Color = 16777215  # White
                 }
             }
         }
 
         # Auto-fit columns
-        $usedRange = $worksheet.UsedRange
-        $usedRange.EntireColumn.AutoFit() | Out-Null
+        $worksheet.UsedRange.EntireColumn.AutoFit() | Out-Null
 
         # Save and close
-        # Use Save() for existing files, SaveAs() for new files
-        if (Test-Path $FilePath) {
-            $workbook.Save()
-        } else {
-            $workbook.SaveAs($FilePath)
-        }
+        # Excel file format constant: 51 = xlWorkbookDefault (.xlsx)
+        $workbook.SaveAs($FilePath, 51)
         $workbook.Close($false)  # $false = don't save again
         $excel.Quit()
 
@@ -953,12 +947,16 @@ function Export-Results {
         $testExcel.Quit()
         [System.Runtime.Interopservices.Marshal]::ReleaseComObject($testExcel) | Out-Null
         $excelAvailable = $true
-        Write-ColoredMessage "[+] Microsoft Excel detected - will export to XLSX with color coding" -Color Green
+        if ($CombinedWorkbook) {
+            Write-ColoredMessage "[+] Microsoft Excel detected - will export to single combined XLSX workbook (slower)" -Color Green
+        } else {
+            Write-ColoredMessage "[+] Microsoft Excel detected - will export to separate XLSX files (faster)" -Color Green
+        }
     } catch {
         Write-ColoredMessage "[!] Microsoft Excel not available - will export to CSV" -Color Yellow
     }
 
-    if ($excelAvailable) {
+    if ($excelAvailable -and $CombinedWorkbook) {
         # Export to Excel with color coding - SINGLE WORKBOOK
         # Ensure absolute path for Excel
         $absoluteOutputPath = (Resolve-Path -Path $OutputPath).Path
@@ -1109,6 +1107,57 @@ function Export-Results {
                 try { $excel.Quit() } catch {}
             }
 
+            $excelAvailable = $false
+        }
+    }
+
+    if ($excelAvailable -and !$CombinedWorkbook) {
+        # Export to separate Excel files (faster than combined workbook)
+        $excelPaths = @()
+
+        # Resolve absolute path once
+        $absoluteOutputPath = (Resolve-Path -Path $OutputPath).Path
+
+        try {
+            if ($AutorunEntries.Count -gt 0) {
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Autoruns_${timestamp}.xlsx"
+                if (Export-ToExcel -Data $AutorunEntries -FilePath $excelPath -WorksheetName "Autoruns") {
+                    Write-ColoredMessage "[+] Autoruns Excel saved: $excelPath" -Color Green
+                    $excelPaths += $excelPath
+                }
+            }
+
+            if ($ServiceEntries.Count -gt 0) {
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Services_${timestamp}.xlsx"
+                if (Export-ToExcel -Data $ServiceEntries -FilePath $excelPath -WorksheetName "Services") {
+                    Write-ColoredMessage "[+] Services Excel saved: $excelPath" -Color Green
+                    $excelPaths += $excelPath
+                }
+            }
+
+            if ($NetworkEntries.Count -gt 0) {
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Network_${timestamp}.xlsx"
+                if (Export-ToExcel -Data $NetworkEntries -FilePath $excelPath -WorksheetName "Network") {
+                    Write-ColoredMessage "[+] Network Excel saved: $excelPath" -Color Green
+                    $excelPaths += $excelPath
+                }
+            }
+
+            if ($ProcessEntries.Count -gt 0) {
+                $excelPath = Join-Path $absoluteOutputPath "${hostname}_Processes_${timestamp}.xlsx"
+                if (Export-ToExcel -Data $ProcessEntries -FilePath $excelPath -WorksheetName "Processes") {
+                    Write-ColoredMessage "[+] Processes Excel saved: $excelPath" -Color Green
+                    $excelPaths += $excelPath
+                }
+            }
+
+            if ($excelPaths.Count -gt 0) {
+                Write-ColoredMessage "`n[+] Exported $($excelPaths.Count) Excel files with color coding" -Color Green
+                return $excelPaths -join ", "
+            }
+        } catch {
+            Write-ColoredMessage "[!] Separate Excel export failed: $_" -Color Red
+            Write-ColoredMessage "[!] Falling back to CSV export" -Color Yellow
             $excelAvailable = $false
         }
     }
