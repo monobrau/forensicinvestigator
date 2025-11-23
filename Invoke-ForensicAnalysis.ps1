@@ -62,7 +62,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.1.1-FixedSeparateFilesPath-20250123"
+$script:Version = "2.1.2-RemovedDebugMessages-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -329,8 +329,6 @@ function Get-AutorunEntries {
         # This avoids PowerShell's encoding conversion issues
         $cmdLine = "cmd.exe /c `"`"$autorunsc`" -accepteula -a * -c -s > `"$tempCsvPath`"`""
 
-        Write-Host "[DEBUG] Running: $cmdLine" -ForegroundColor Gray
-
         # Start the process in background
         $startTime = Get-Date
         $processInfo = Start-Process -FilePath "cmd.exe" `
@@ -384,35 +382,20 @@ function Get-AutorunEntries {
             return @()
         }
 
-        # Check file size
-        $fileSize = (Get-Item $tempCsvPath).Length
-        Write-Host "[DEBUG] CSV file size: $fileSize bytes" -ForegroundColor Gray
-
         # Read as UTF-16 LE (which is what autorunsc outputs with -c flag)
         $lines = Get-Content -Path $tempCsvPath -Encoding Unicode | Where-Object { ![string]::IsNullOrWhiteSpace($_) }
 
         if ($lines.Count -lt 2) {
             Write-ColoredMessage "[!] No output from Autorunsc (only $($lines.Count) lines)" -Color Yellow
-            Write-Host "[DEBUG] First few lines from file:" -ForegroundColor Gray
-            $lines | Select-Object -First 3 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
             Remove-Item $tempCsvPath -Force -ErrorAction SilentlyContinue
             return @()
         }
 
-        Write-Host "[DEBUG] Autorunsc returned $($lines.Count) lines" -ForegroundColor Gray
-        Write-Host "[DEBUG] First line (header): $($lines[0])" -ForegroundColor Gray
-
         # Parse CSV output
         try {
             $csv = $lines | ConvertFrom-Csv
-            Write-Host "[DEBUG] CSV parsed successfully, $($csv.Count) entries" -ForegroundColor Gray
-            if ($csv.Count -gt 0) {
-                Write-Host "[DEBUG] CSV columns: $($csv[0].PSObject.Properties.Name -join ', ')" -ForegroundColor Gray
-            }
         } catch {
             Write-ColoredMessage "[!] Failed to parse CSV: $_" -Color Red
-            Write-Host "[DEBUG] First 5 lines:" -ForegroundColor Gray
-            $lines | Select-Object -First 5 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
             return @()
         }
 
@@ -429,15 +412,6 @@ function Get-AutorunEntries {
                 }
             }
             return $null
-        }
-
-        # Debug: Show first entry's actual properties
-        if ($csv.Count -gt 0) {
-            Write-Host "[DEBUG] First entry properties:" -ForegroundColor Cyan
-            $csv[0].PSObject.Properties | ForEach-Object {
-                $val = if ($_.Value.Length -gt 50) { $_.Value.Substring(0,50) + "..." } else { $_.Value }
-                Write-Host "  $($_.Name) = $val" -ForegroundColor Gray
-            }
         }
 
         foreach ($entry in $csv) {

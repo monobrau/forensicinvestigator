@@ -102,14 +102,127 @@ iex (irm "https://your-url/Remote-Launch.ps1")
 powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$env:VT_API_KEY='your-key'; iex (irm 'https://your-url/Remote-Launch.ps1')"
 ```
 
-### ConnectWise Command (ScreenConnect)
+### ConnectWise ScreenConnect Commands
 
-1. Open session → **Commands** tab
-2. Select **PowerShell**
-3. Paste command:
+ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts remotely. Choose the method that best fits your needs.
+
+#### Step-by-Step Instructions
+
+1. **Connect to the target machine** in ScreenConnect
+2. Click the **Commands** button (or press F5)
+3. Select **PowerShell** from the dropdown
+4. Paste one of the commands below
+5. Press **Enter** or click **Run**
+
+#### Getting Your Script URL
+
+Replace `YOUR_USERNAME/forensicinvestigator` with your actual GitHub repository path:
+
+- **GitHub (Public Repo)**: `https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1`
+- **GitHub (Private Repo)**: Use a GitHub Personal Access Token
+- **Self-Hosted**: `https://yourdomain.com/path/to/Remote-Launch.ps1`
+- **Local Network**: `http://192.168.1.100/Remote-Launch.ps1`
+
+#### Command Options
+
+**Option 1: Basic Scan (No VirusTotal)**
 ```powershell
-iex (irm "https://your-url/Remote-Launch.ps1")
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
 ```
+- Fast execution (2-5 minutes)
+- No malware scanning
+- Creates Excel or CSV reports
+
+**Option 2: With VirusTotal Scanning**
+```powershell
+$env:VT_API_KEY = "your-virustotal-api-key-here"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
+- Scans all executables for malware
+- Takes 30-60+ minutes (API rate limited)
+- Requires free VirusTotal API key
+
+**Option 3: With Tool Cleanup (No Trace)**
+```powershell
+powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')" -CleanupTools
+```
+- Deletes Sysinternals tools after completion
+- Leaves only the report
+- Useful for compliance/cleanup
+
+**Option 4: Custom Output Location**
+```powershell
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1"); Invoke-ForensicAnalysis -OutputPath "C:\SecurityReports"
+```
+- Saves reports to specific directory
+- Useful for centralized report collection
+
+**Option 5: Full Featured (VT + Cleanup + Custom Path)**
+```powershell
+$env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
+Then manually add `-CleanupTools -OutputPath "C:\Reports"` to the execution.
+
+#### ScreenConnect Command Templates
+
+For **one-time execution**, copy and paste into the PowerShell command box:
+
+```powershell
+# Template 1: Basic (fastest)
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+
+# Template 2: With VirusTotal
+$env:VT_API_KEY = "YOUR_VT_API_KEY"; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+
+# Template 3: Silent cleanup
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1") -CleanupTools
+```
+
+For **saving as a ScreenConnect Command** (reusable):
+
+1. In ScreenConnect, go to **Admin** → **Command Toolbox**
+2. Click **Add Command**
+3. Name it: `Forensic Scan - Basic`
+4. Command Type: **PowerShell**
+5. Paste:
+```powershell
+iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
+6. Save and run from the Commands menu anytime
+
+#### Retrieving Reports
+
+After execution completes, reports are saved to:
+- **Default Location**: `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\`
+- **Custom Location**: Path specified with `-OutputPath`
+
+To retrieve reports via ScreenConnect:
+1. Open **File Manager** in the session
+2. Navigate to the report directory
+3. Download the `.xlsx` or `.csv` files
+4. Or use ScreenConnect's **Transfer Files** feature
+
+#### Troubleshooting ScreenConnect Commands
+
+**Error: "Execution Policy Restricted"**
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+```
+
+**Error: "Cannot download script"**
+- Check internet connectivity on target machine
+- Verify URL is correct and accessible
+- Try using IP address instead of hostname
+- Check firewall/proxy settings
+
+**Error: "Not running as Administrator"**
+- The script will auto-elevate if possible
+- Ensure ScreenConnect session has admin rights
+- Or manually run ScreenConnect as admin
+
+**Command appears to hang**
+- This is normal for VirusTotal scans (can take 30-60 minutes)
+- Check CPU usage - if active, it's still running
+- Without VT, should complete in 2-5 minutes
 
 ### ConnectWise Automate
 
