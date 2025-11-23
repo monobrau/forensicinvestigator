@@ -62,7 +62,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.1.2-RemovedDebugMessages-20250123"
+$script:Version = "2.1.3-FixedCSVFallback-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -1128,6 +1128,11 @@ function Export-Results {
             if ($excelPaths.Count -gt 0) {
                 Write-ColoredMessage "`n[+] Exported $($excelPaths.Count) Excel files with color coding" -Color Green
                 return $excelPaths -join ", "
+            } else {
+                # All Excel exports failed silently (COM errors when running as SYSTEM)
+                Write-ColoredMessage "[!] All Excel exports failed (likely running as SYSTEM account)" -Color Yellow
+                Write-ColoredMessage "[!] Falling back to CSV export" -Color Yellow
+                $excelAvailable = $false
             }
         } catch {
             Write-ColoredMessage "[!] Separate Excel export failed: $_" -Color Red
