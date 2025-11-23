@@ -573,6 +573,21 @@ function Get-ServiceEntries {
 
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
+            # Safely format VT detections
+            $vtDetections = "N/A"
+            if ($vtReport) {
+                try {
+                    $mal = [int]$vtReport.Malicious
+                    $sus = [int]$vtReport.Suspicious
+                    $undet = [int]$vtReport.Undetected
+                    $harm = [int]$vtReport.Harmless
+                    $total = $mal + $sus + $undet + $harm
+                    $vtDetections = "$mal/$total"
+                } catch {
+                    $vtDetections = "Error"
+                }
+            }
+
             $entries += [PSCustomObject]@{
                 Type = "Service"
                 ServiceName = $service.Name
@@ -583,9 +598,9 @@ function Get-ServiceEntries {
                 ExecutablePath = $exePath
                 Publisher = $signature
                 SHA256 = $hash
-                VT_Malicious = if ($vtReport) { $vtReport.Malicious } else { "N/A" }
-                VT_Suspicious = if ($vtReport) { $vtReport.Suspicious } else { "N/A" }
-                VT_Detections = if ($vtReport) { "$($vtReport.Malicious)/$($vtReport.Malicious + $vtReport.Suspicious + $vtReport.Undetected + $vtReport.Harmless)" } else { "N/A" }
+                VT_Malicious = if ($vtReport) { [string]$vtReport.Malicious } else { "N/A" }
+                VT_Suspicious = if ($vtReport) { [string]$vtReport.Suspicious } else { "N/A" }
+                VT_Detections = $vtDetections
                 RiskLevel = $riskLevel
             }
         }
@@ -644,6 +659,21 @@ function Get-NetworkConnections {
 
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
+            # Safely format VT detections
+            $vtDetections = "N/A"
+            if ($vtReport) {
+                try {
+                    $mal = [int]$vtReport.Malicious
+                    $sus = [int]$vtReport.Suspicious
+                    $undet = [int]$vtReport.Undetected
+                    $harm = [int]$vtReport.Harmless
+                    $total = $mal + $sus + $undet + $harm
+                    $vtDetections = "$mal/$total"
+                } catch {
+                    $vtDetections = "Error"
+                }
+            }
+
             $entries += [PSCustomObject]@{
                 Type = "Network"
                 Protocol = "TCP"
@@ -657,9 +687,9 @@ function Get-NetworkConnections {
                 ExecutablePath = $exePath
                 Publisher = $signature
                 SHA256 = $hash
-                VT_Malicious = if ($vtReport) { $vtReport.Malicious } else { "N/A" }
-                VT_Suspicious = if ($vtReport) { $vtReport.Suspicious } else { "N/A" }
-                VT_Detections = if ($vtReport) { "$($vtReport.Malicious)/$($vtReport.Malicious + $vtReport.Suspicious + $vtReport.Undetected + $vtReport.Harmless)" } else { "N/A" }
+                VT_Malicious = if ($vtReport) { [string]$vtReport.Malicious } else { "N/A" }
+                VT_Suspicious = if ($vtReport) { [string]$vtReport.Suspicious } else { "N/A" }
+                VT_Detections = $vtDetections
                 RiskLevel = $riskLevel
             }
         }
@@ -714,6 +744,21 @@ function Get-RunningProcesses {
 
             $riskLevel = Get-RiskLevel -Signature $signature -VTReport $vtReport
 
+            # Safely format VT detections
+            $vtDetections = "N/A"
+            if ($vtReport) {
+                try {
+                    $mal = [int]$vtReport.Malicious
+                    $sus = [int]$vtReport.Suspicious
+                    $undet = [int]$vtReport.Undetected
+                    $harm = [int]$vtReport.Harmless
+                    $total = $mal + $sus + $undet + $harm
+                    $vtDetections = "$mal/$total"
+                } catch {
+                    $vtDetections = "Error"
+                }
+            }
+
             $entries += [PSCustomObject]@{
                 Type = "Process"
                 ProcessName = $process.ProcessName
@@ -723,9 +768,9 @@ function Get-RunningProcesses {
                 Description = $process.Description
                 Publisher = $signature
                 SHA256 = $hash
-                VT_Malicious = if ($vtReport) { $vtReport.Malicious } else { "N/A" }
-                VT_Suspicious = if ($vtReport) { $vtReport.Suspicious } else { "N/A" }
-                VT_Detections = if ($vtReport) { "$($vtReport.Malicious)/$($vtReport.Malicious + $vtReport.Suspicious + $vtReport.Undetected + $vtReport.Harmless)" } else { "N/A" }
+                VT_Malicious = if ($vtReport) { [string]$vtReport.Malicious } else { "N/A" }
+                VT_Suspicious = if ($vtReport) { [string]$vtReport.Suspicious } else { "N/A" }
+                VT_Detections = $vtDetections
                 RiskLevel = $riskLevel
             }
         }
