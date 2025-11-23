@@ -52,7 +52,7 @@ param(
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.0.0-RefactoredExcelExport-20250123"
+$script:Version = "2.0.1-FixedExcelSavePath-20250123"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -960,7 +960,9 @@ function Export-Results {
 
     if ($excelAvailable) {
         # Export to Excel with color coding - SINGLE WORKBOOK
-        $excelPath = Join-Path $OutputPath "${hostname}_ForensicAnalysis_${timestamp}.xlsx"
+        # Ensure absolute path for Excel
+        $absoluteOutputPath = (Resolve-Path -Path $OutputPath).Path
+        $excelPath = Join-Path $absoluteOutputPath "${hostname}_ForensicAnalysis_${timestamp}.xlsx"
 
         try {
             # Create Excel instance ONCE
@@ -1081,7 +1083,8 @@ function Export-Results {
 
             # Save workbook
             Write-Host "[*] Saving workbook..."
-            $workbook.SaveAs($excelPath)
+            # Excel file format constant: 51 = xlWorkbookDefault (.xlsx)
+            $workbook.SaveAs($excelPath, 51)
             $workbook.Close($false)
             $excel.Quit()
 
