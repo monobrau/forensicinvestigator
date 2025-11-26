@@ -25,6 +25,9 @@
     Switch to export to a single Excel workbook with all worksheets (slower but consolidated).
     By default, exports to separate Excel files for faster performance.
 
+.PARAMETER ForceCSV
+    Switch to force CSV output instead of Excel, even if Excel is available.
+
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -EnableVirusTotal -VirusTotalApiKey "your-api-key"
 
@@ -36,6 +39,9 @@
 
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -CombinedWorkbook
+
+.EXAMPLE
+    .\Invoke-ForensicAnalysis.ps1 -ForceCSV
 #>
 
 [CmdletBinding()]
@@ -56,7 +62,10 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
-    [switch]$CombinedWorkbook
+    [switch]$CombinedWorkbook,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$ForceCSV
 )
 
 #Requires -RunAsAdministrator
@@ -914,20 +923,26 @@ function Export-Results {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $hostname = $env:COMPUTERNAME
 
-    # Check if Excel is available
-    $excelAvailable = $false
-    try {
-        $testExcel = New-Object -ComObject Excel.Application -ErrorAction Stop
-        $testExcel.Quit()
-        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($testExcel) | Out-Null
-        $excelAvailable = $true
-        if ($CombinedWorkbook) {
-            Write-ColoredMessage "[+] Microsoft Excel detected - will export to single combined XLSX workbook (slower)" -Color Green
-        } else {
-            Write-ColoredMessage "[+] Microsoft Excel detected - will export to separate XLSX files (faster)" -Color Green
+    # Check if CSV output is forced
+    if ($ForceCSV) {
+        Write-ColoredMessage "[*] CSV output forced - will export to CSV files" -Color Yellow
+        $excelAvailable = $false
+    } else {
+        # Check if Excel is available
+        $excelAvailable = $false
+        try {
+            $testExcel = New-Object -ComObject Excel.Application -ErrorAction Stop
+            $testExcel.Quit()
+            [System.Runtime.Interopservices.Marshal]::ReleaseComObject($testExcel) | Out-Null
+            $excelAvailable = $true
+            if ($CombinedWorkbook) {
+                Write-ColoredMessage "[+] Microsoft Excel detected - will export to single combined XLSX workbook (slower)" -Color Green
+            } else {
+                Write-ColoredMessage "[+] Microsoft Excel detected - will export to separate XLSX files (faster)" -Color Green
+            }
+        } catch {
+            Write-ColoredMessage "[!] Microsoft Excel not available - will export to CSV" -Color Yellow
         }
-    } catch {
-        Write-ColoredMessage "[!] Microsoft Excel not available - will export to CSV" -Color Yellow
     }
 
     if ($excelAvailable -and $CombinedWorkbook) {
