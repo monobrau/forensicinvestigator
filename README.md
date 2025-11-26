@@ -80,6 +80,9 @@ This will:
 | `VirusTotalApiKey` | String | No | `""` | VirusTotal API key for hash lookups |
 | `EnableVirusTotal` | Switch | No | `$false` | Enable VirusTotal scanning |
 | `ToolsPath` | String | No | `.\SysinternalsTools` | Directory for Sysinternals tools |
+| `CleanupTools` | Switch | No | `$false` | Delete Sysinternals tools after analysis |
+| `CombinedWorkbook` | Switch | No | `$false` | Export to single Excel workbook (slower) |
+| `ForceCSV` | Switch | No | `$false` | Force CSV output even if Excel is available |
 
 ## Remote Deployment
 
@@ -110,6 +113,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 -VirusTotalApiKey "your-key"           # VT API key
 -CleanupTools                          # Delete tools after scan
 -CombinedWorkbook                      # Single Excel file (slower)
+-ForceCSV                              # Force CSV output (skip Excel)
 ```
 
 ### ConnectWise ScreenConnect Commands (✅ Tested)
@@ -162,6 +166,15 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 - Scans all executables for malware
 - Takes 30-60+ minutes (API rate limited)
 - Requires free VirusTotal API key
+
+**Option 5: Force CSV Output**
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -ForceCSV -OutputPath "C:\SecurityReports"
+```
+- Forces CSV export even if Excel is available
+- Useful when Excel COM automation fails or is not desired
+- Faster export (no Excel overhead)
 
 #### Saving as Reusable ScreenConnect Command
 
@@ -275,7 +288,7 @@ Each worksheet includes:
 
 ### CSV Output
 
-When Excel is not available, separate CSV files are created:
+When Excel is not available (or when using `-ForceCSV`), separate CSV files are created:
 
 - `{HOSTNAME}_Autoruns_{TIMESTAMP}.csv`
 - `{HOSTNAME}_Services_{TIMESTAMP}.csv`
@@ -283,6 +296,12 @@ When Excel is not available, separate CSV files are created:
 - `{HOSTNAME}_Processes_{TIMESTAMP}.csv`
 
 **Note**: CSV files include all data but cannot display color coding.
+
+**Force CSV Output:**
+```powershell
+.\Invoke-ForensicAnalysis.ps1 -ForceCSV -OutputPath "C:\SecurityReports"
+```
+This will export to CSV even if Excel is installed, useful for environments where Excel COM automation is not desired or unavailable.
 
 ## What Gets Analyzed
 
@@ -371,7 +390,7 @@ All tools are downloaded from `https://live.sysinternals.com/` and accept EULAs 
 Run PowerShell as Administrator for full functionality.
 
 ### "Excel not available"
-The tool will automatically fall back to CSV export. Install Microsoft Excel for color-coded XLSX reports.
+The tool will automatically fall back to CSV export. Install Microsoft Excel for color-coded XLSX reports. Alternatively, use the `-ForceCSV` parameter to always export to CSV format.
 
 ### VirusTotal Rate Limiting
 Free API keys are limited to 4 requests per minute. The script automatically throttles requests. Consider waiting or using a premium API key for faster analysis.
