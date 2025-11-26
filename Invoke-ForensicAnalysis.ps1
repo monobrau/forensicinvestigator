@@ -1188,6 +1188,17 @@ function Export-Results {
             $csvPaths += $csvPath
         }
 
+        # Create zip archive of CSV files
+        if ($csvPaths.Count -gt 0) {
+            try {
+                $zipPath = Join-Path $OutputPath "${hostname}_ForensicAnalysis_${timestamp}.zip"
+                Compress-Archive -Path $csvPaths -DestinationPath $zipPath -Force -ErrorAction Stop
+                Write-ColoredMessage "[+] CSV files archived: $zipPath" -Color Green
+            } catch {
+                Write-ColoredMessage "[!] Warning: Failed to create zip archive: $_" -Color Yellow
+            }
+        }
+
         Write-ColoredMessage "`n[!] Note: CSV files do not include color coding. Use Excel for color-coded risk levels." -Color Yellow
         return $csvPaths -join ", "
     }
