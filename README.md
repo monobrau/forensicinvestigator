@@ -116,6 +116,41 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 -ForceCSV                              # Force CSV output (skip Excel)
 ```
 
+#### Run Directly from GitHub (No Disk Storage) ✅
+
+Execute the script directly from GitHub without saving it to disk:
+
+```powershell
+# Basic execution (default parameters)
+iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1")
+```
+
+**With Parameters (Recommended):**
+```powershell
+# Using scriptblock for parameter passing
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -ForceCSV
+```
+
+**With Multiple Parameters:**
+```powershell
+# Force CSV output with cleanup
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -ForceCSV -CleanupTools
+```
+
+**With VirusTotal:**
+```powershell
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -EnableVirusTotal -VirusTotalApiKey "your-api-key"
+```
+
+**Benefits:**
+- ✅ No script file saved to disk (runs entirely from memory)
+- ✅ Useful for security-sensitive environments
+- ✅ Leaves no PowerShell script artifacts
+- ✅ Still downloads Sysinternals tools (required for execution)
+- ✅ Reports are still written to disk (that's the output)
+
+**Note:** The script itself runs from memory, but it still needs to download Sysinternals tools and write reports to disk. Only the PowerShell script file itself is not saved.
+
 ### ConnectWise ScreenConnect Commands (✅ Tested)
 
 ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts remotely. Choose the method that best fits your needs.
