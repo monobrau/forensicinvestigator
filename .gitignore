@@ -13,6 +13,13 @@ ForensicReports/
 *.apikey
 config.json
 secrets.json
+# Exclude configured/credential files but allow helper scripts
+*-credentials*.ps1
+*-Credential*.ps1
+*-configured*.ps1
+*-local*.ps1
+Send-ForensicReport-configured.ps1
+Send-ForensicReport-local.ps1
 
 # PowerShell artifacts
 *.log

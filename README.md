@@ -296,6 +296,130 @@ Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "htt
 - Check CPU usage - if active, it's still running
 - Without VT, should complete in 2-5 minutes
 
+## Email Integration with Gmail
+
+The tool includes a wrapper script that automatically emails forensic reports via Gmail after analysis completes. This is ideal for ScreenConnect deployments where you need results delivered automatically without manual file transfer.
+
+### Prerequisites
+
+1. **Gmail Account** with 2-Step Verification enabled
+2. **Gmail App Password** (not your regular password)
+   - Create at: https://myaccount.google.com/apppasswords
+   - Select "Mail" as the app
+   - Copy the 16-character password (remove spaces)
+
+### Setup Instructions
+
+#### Step 1: Generate Encrypted Credentials
+
+Run the setup script to create an encrypted password string:
+
+```powershell
+.\Setup-SecureCredentials.ps1
+```
+
+This will prompt for:
+- Your Gmail address
+- Your Gmail App Password (16 characters)
+
+The script will output an encrypted string that you'll paste into `Send-ForensicReport.ps1`.
+
+#### Step 2: Encode Credentials for ScreenConnect
+
+Run the encoding script to create a base64-encoded credential string:
+
+```powershell
+.\Encode-Credentials.ps1
+```
+
+This will prompt for:
+- Your Gmail address
+- Recipient email (can be same as Gmail address)
+- Encrypted password (from Step 1)
+
+The script will output a base64-encoded string that you'll use in your ScreenConnect command.
+
+#### Step 3: Deploy via ScreenConnect
+
+**Option A: Using Base64 Credentials (Recommended - No credentials in GitHub)**
+
+Use this command in ScreenConnect, replacing `YOUR_BASE64_STRING` with the string from Step 2:
+
+```powershell
+#!ps
+$creds = "YOUR_BASE64_STRING"; irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -OutFile "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds
+```
+
+**Option B: Configure Script Locally (Alternative)**
+
+If you prefer to configure the script directly, open `Send-ForensicReport.ps1` and update the configuration section at the top:
+
+```powershell
+# Update these values:
+$GmailAddress = "your-email@gmail.com"
+$RecipientEmail = "your-email@gmail.com"  # Can be same or different
+$EncryptedPassword = "01000000d08c9ddf..."  # Paste encrypted string from Step 1
+```
+
+**⚠️ SECURITY WARNING: Do NOT commit this file to GitHub with real credentials!**
+
+Then use this command in ScreenConnect:
+
+```powershell
+#!ps
+irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -OutFile "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1"
+```
+
+**Recommended:** Use Option A (base64) to keep credentials out of GitHub entirely.
+
+The script will:
+1. Download and run the forensic analysis
+2. Generate CSV reports and ZIP archive
+3. Automatically email the ZIP file to your specified recipient
+4. Suppress all output (credentials remain secure)
+
+### Security Features
+
+- **Encrypted Credentials**: App Password stored as encrypted SecureString
+- **No Output**: All output suppressed to prevent credential exposure
+- **App Password**: Uses Gmail App Password (not regular password)
+- **Silent Failures**: Errors don't expose sensitive information
+
+### Important Notes
+
+- **Machine-Specific**: Encrypted passwords are machine/user-specific
+- **ScreenConnect**: For ScreenConnect deployments, create the encrypted password on a test machine using the same user context that ScreenConnect uses
+- **Alternative**: If encrypted passwords don't work due to user context, you can modify the script to use plaintext App Password (less secure but functional)
+
+### Troubleshooting Email
+
+**Email not received:**
+- Verify Gmail App Password is correct (16 characters, no spaces)
+- Check spam/junk folder
+- Verify 2-Step Verification is enabled
+- Ensure SMTP port 587 is not blocked
+
+**Encrypted password doesn't work:**
+- Create encrypted password on test machine via ScreenConnect (same user context)
+- Or modify script to use plaintext App Password temporarily for testing
+
+**Script runs but no email:**
+- Check that ZIP file was generated successfully
+- Verify Gmail address and recipient email are correct
+- Temporarily remove `*>&1 | Out-Null` to see error messages
+
+### Security Best Practices
+
+- **Never commit credentials**: The repository version uses placeholders only
+- **Use local copies**: Create `Send-ForensicReport-local.ps1` for your configured version
+- **Rotate credentials**: Regenerate App Passwords periodically
+- **Private repositories**: If sharing configured scripts, use private repos only
+- **Git ignore**: Files matching `*credentials*.ps1` and `*Credential*.ps1` are gitignored
+
+### Manual Email Alternative
+
+If you prefer to send emails manually after analysis, you can use the standard forensic analysis script and manually transfer files via ScreenConnect File Manager.
+
 ## Getting a VirusTotal API Key
 
 1. Create a free account at [VirusTotal](https://www.virustotal.com/)
