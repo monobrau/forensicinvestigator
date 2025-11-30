@@ -406,7 +406,15 @@ The script will:
 **Script runs but no email:**
 - Check that ZIP file was generated successfully
 - Verify Gmail address and recipient email are correct
-- Temporarily remove `*>&1 | Out-Null` to see error messages
+- Use the debug version to see detailed output:
+  ```powershell
+  #!ps
+  $creds = "YOUR_BASE64_STRING"; Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport-Debug.ps1" -OutFile "$env:TEMP\SendReport-Debug.ps1"; & "$env:TEMP\SendReport-Debug.ps1" -EncryptedCredentialsBase64 $creds
+  ```
+- Common causes:
+  - Encrypted password created on different machine/user (ScreenConnect context issue)
+  - ZIP file not found (analysis may have failed silently)
+  - Email sending failed (check Gmail App Password)
 
 ### Security Best Practices
 
