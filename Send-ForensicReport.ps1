@@ -54,6 +54,9 @@ param(
     [string]$EncryptedCredentialsBase64 = "",
     
     [Parameter(Mandatory=$false)]
+    [string]$PlaintextAppPassword = "",
+    
+    [Parameter(Mandatory=$false)]
     [string]$OutputPath = "C:\SecurityReports",
     
     [Parameter(Mandatory=$false)]
@@ -121,20 +124,32 @@ try {
         Select-Object -First 1
     
     if (-not $ZipFile) {
-        # No ZIP file found - exit silently
-        exit 0
+        # No ZIP file found - wait a bit and try again (analysis might still be running)
+        Start-Sleep -Seconds 10
+        $ZipFile = Get-ChildItem -Path $OutputPath -Filter "*.zip" -ErrorAction SilentlyContinue | 
+            Sort-Object LastWriteTime -Descending | 
+            Select-Object -First 1
+        
+        if (-not $ZipFile) {
+            # Still no ZIP file - exit silently
+            exit 0
+        }
     }
     
     # Step 3: Prepare email credentials
-    # Decrypt the App Password
-    if ($EncryptedPassword -eq "PASTE_YOUR_ENCRYPTED_PASSWORD_HERE" -or [string]::IsNullOrWhiteSpace($EncryptedPassword)) {
-        # Credentials not configured - exit silently
-        exit 0
+    # Try plaintext App Password first (for ScreenConnect compatibility)
+    $SecurePassword = $null
+    
+    if (![string]::IsNullOrWhiteSpace($PlaintextAppPassword)) {
+        # Use plaintext App Password (works across all machines/users)
+        $SecurePassword = ConvertTo-SecureString $PlaintextAppPassword -AsPlainText -Force -ErrorAction SilentlyContinue
+    } elseif ($EncryptedPassword -ne "PASTE_YOUR_ENCRYPTED_PASSWORD_HERE" -and ![string]::IsNullOrWhiteSpace($EncryptedPassword)) {
+        # Try encrypted password (machine/user-specific)
+        $SecurePassword = $EncryptedPassword | ConvertTo-SecureString -ErrorAction SilentlyContinue
     }
     
-    $SecurePassword = $EncryptedPassword | ConvertTo-SecureString -ErrorAction SilentlyContinue
     if (-not $SecurePassword) {
-        # Failed to decrypt - exit silently
+        # Failed to get password - exit silently
         exit 0
     }
     
