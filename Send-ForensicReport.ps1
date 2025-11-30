@@ -80,7 +80,13 @@ if (![string]::IsNullOrWhiteSpace($EncryptedCredentialsBase64)) {
         if ($parts.Count -ge 3) {
             $GmailAddress = $parts[0]
             $RecipientEmail = $parts[1]
-            $EncryptedPassword = $parts[2]
+            
+            # Check if using plaintext password (for ScreenConnect compatibility)
+            if ($parts.Count -ge 4 -and $parts[2] -eq "PLAINTEXT") {
+                $PlaintextAppPassword = $parts[3]
+            } else {
+                $EncryptedPassword = $parts[2]
+            }
         }
     } catch {
         # Invalid base64 - fall through to embedded/default values
