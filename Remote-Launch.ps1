@@ -27,6 +27,12 @@
 .PARAMETER CleanupTools
     Delete Sysinternals tools after analysis completes
 
+.PARAMETER ForceCSV
+    Force CSV output instead of Excel, even if Excel is available
+
+.PARAMETER CombinedWorkbook
+    Export to a single Excel workbook with all worksheets (slower but consolidated)
+
 .EXAMPLE
     # Direct execution
     .\Remote-Launch.ps1 -EnableVirusTotal -VirusTotalApiKey "your-key"
@@ -36,12 +42,20 @@
     iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
-    # Via IEX with parameters
+    # Via IEX with parameters (using scriptblock for parameter passing)
+    & ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"))) -ForceCSV
+
+.EXAMPLE
+    # Via IEX with environment variable
     $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
-    # ConnectWise Command - One-liner
+    # ConnectWise Command - One-liner (no parameters)
     powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
+
+.EXAMPLE
+    # ConnectWise Command - With ForceCSV parameter (must use scriptblock syntax)
+    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'))) -ForceCSV"
 
 .EXAMPLE
     # With tool cleanup (leaves no trace)
@@ -70,6 +84,12 @@ param(
 
     [Parameter(Mandatory=$false)]
     [switch]$CleanupTools,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$ForceCSV,
+
+    [Parameter(Mandatory=$false)]
+    [switch]$CombinedWorkbook,
 
     [Parameter(Mandatory=$false)]
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
@@ -191,6 +211,16 @@ if ($EnableVirusTotal -and ![string]::IsNullOrWhiteSpace($VirusTotalApiKey)) {
 if ($CleanupTools) {
     $params.CleanupTools = $true
     Write-Log "Tool cleanup: ENABLED" "INFO"
+}
+
+if ($ForceCSV) {
+    $params.ForceCSV = $true
+    Write-Log "CSV output: FORCED" "INFO"
+}
+
+if ($CombinedWorkbook) {
+    $params.CombinedWorkbook = $true
+    Write-Log "Combined workbook: ENABLED" "INFO"
 }
 
 # Execute the forensic analysis
