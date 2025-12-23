@@ -96,7 +96,7 @@ Download the main script directly and run with custom parameters:
 
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 **Benefits:**
@@ -169,7 +169,7 @@ ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts r
 **Option 1: Basic Scan with Custom Output Path**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 - ✅ Verified working in ScreenConnect
 - Fast execution (2-5 minutes)
@@ -179,7 +179,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 2: Default Output Location**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1"
 ```
 - Saves to `C:\Windows\Temp\ForensicReports\` (when running as SYSTEM)
 - Otherwise saves to `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\`
@@ -187,7 +187,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 3: Combined Workbook (Single Excel File)**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
 ```
 - Creates one Excel file with all worksheets
 - Slower than separate files
@@ -196,7 +196,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 4: With VirusTotal Scanning**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -EnableVirusTotal -VirusTotalApiKey "your-api-key" -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -EnableVirusTotal -VirusTotalApiKey "your-api-key" -OutputPath "C:\SecurityReports"
 ```
 - Scans all executables for malware
 - Takes 30-60+ minutes (API rate limited)
@@ -205,7 +205,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 5: Force CSV Output**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -ForceCSV -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -ForceCSV -OutputPath "C:\SecurityReports"
 ```
 - Forces CSV export even if Excel is available
 - Useful when Excel COM automation fails or is not desired
@@ -221,7 +221,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 6. Save and run from the Commands menu anytime
@@ -229,7 +229,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **For Combined Workbook Version:**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
 ```
 
 #### Retrieving Reports
