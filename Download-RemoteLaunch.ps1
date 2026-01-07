@@ -40,9 +40,28 @@ try {
         $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing -ErrorAction Stop
         
         # Check if we got HTML instead of the script (web filter interception)
-        if ($response.Content -match '<html|<HTML|<!DOCTYPE') {
-            throw "Web filter intercepted request - received HTML instead of script"
+        $content = if ($response.Content -is [byte[]]) {
+            [System.Text.Encoding]::UTF8.GetString($response.Content)
+        } else {
+            $response.Content
         }
+        
+        if ($content -match '<html|<HTML|<!DOCTYPE|Securly|web filter|geolocation') {
+            Write-Host "" -ForegroundColor Red
+            Write-Host "ERROR: GitHub is blocked by a web filter" -ForegroundColor Red
+            Write-Host "Received HTML page instead of PowerShell script" -ForegroundColor Red
+            Write-Host "" -ForegroundColor Red
+            Write-Host "SOLUTION - Manual Download:" -ForegroundColor Yellow
+            Write-Host "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Remote-Launch.ps1" -ForegroundColor Cyan
+            Write-Host "  2. Click 'Raw' button (top right)" -ForegroundColor Cyan
+            Write-Host "  3. Save as Remote-Launch.ps1" -ForegroundColor Cyan
+            Write-Host "  4. Run: .\Remote-Launch.ps1 -OutputPath 'C:\SecurityReports'" -ForegroundColor Cyan
+            Write-Host "" -ForegroundColor Red
+            Write-Host "Alternative: Use VPN or contact network admin to whitelist raw.githubusercontent.com" -ForegroundColor Yellow
+            exit 1
+        }
+        
+        $scriptContent = $content
         
         # Get content as UTF-8 string
         if ($response.Content -is [byte[]]) {
@@ -60,8 +79,17 @@ try {
         $webClient.Dispose()
         
         # Verify it's PowerShell code, not HTML
-        if ($scriptContent -match '<html|<HTML|<!DOCTYPE') {
-            throw "Web filter is blocking GitHub. Received HTML page instead of PowerShell script."
+        if ($scriptContent -match '<html|<HTML|<!DOCTYPE|Securly|web filter|geolocation') {
+            Write-Host "" -ForegroundColor Red
+            Write-Host "ERROR: GitHub is blocked by a web filter" -ForegroundColor Red
+            Write-Host "Received HTML page instead of PowerShell script" -ForegroundColor Red
+            Write-Host "" -ForegroundColor Red
+            Write-Host "SOLUTION - Manual Download:" -ForegroundColor Yellow
+            Write-Host "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Remote-Launch.ps1" -ForegroundColor Cyan
+            Write-Host "  2. Click 'Raw' button (top right)" -ForegroundColor Cyan
+            Write-Host "  3. Save as Remote-Launch.ps1" -ForegroundColor Cyan
+            Write-Host "  4. Run: .\Remote-Launch.ps1 -OutputPath 'C:\SecurityReports'" -ForegroundColor Cyan
+            exit 1
         }
     }
     

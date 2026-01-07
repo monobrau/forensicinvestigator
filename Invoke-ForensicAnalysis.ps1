@@ -179,12 +179,34 @@ function Get-SysinternalsTools {
         if (!(Test-Path $toolPath)) {
             try {
                 Write-Host "[*] Downloading $tool..." -NoNewline
-                Invoke-WebRequest -Uri $url -OutFile $toolPath -UseBasicParsing -ErrorAction Stop
+                $response = Invoke-WebRequest -Uri $url -OutFile $toolPath -UseBasicParsing -ErrorAction Stop
+                
+                # Verify we got a valid file (not HTML from web filter)
+                if (Test-Path $toolPath) {
+                    $fileSize = (Get-Item $toolPath).Length
+                    if ($fileSize -lt 1000) {
+                        # Suspiciously small - might be HTML error page
+                        $content = Get-Content $toolPath -Raw -ErrorAction SilentlyContinue
+                        if ($content -match '<html|<HTML|<!DOCTYPE|web filter') {
+                            Remove-Item $toolPath -Force -ErrorAction SilentlyContinue
+                            throw "Web filter blocking download - received HTML instead of tool"
+                        }
+                    }
+                }
+                
                 Write-ColoredMessage " OK" -Color Green
                 $downloadCount++
             } catch {
                 Write-ColoredMessage " FAILED" -Color Red
-                Write-ColoredMessage "    Error: $_" -Color Red
+                if ($_.Exception.Message -match 'web filter|HTML|blocked') {
+                    Write-ColoredMessage "    ERROR: Web filter is blocking Sysinternals download" -Color Red
+                    Write-ColoredMessage "    URL: $url" -Color Yellow
+                    Write-ColoredMessage "    SOLUTION: Download manually from https://live.sysinternals.com/" -Color Yellow
+                    Write-ColoredMessage "    Or use VPN/proxy to bypass web filter" -Color Yellow
+                } else {
+                    Write-ColoredMessage "    Error: $($_.Exception.Message)" -Color Red
+                    Write-ColoredMessage "    URL: $url" -Color Yellow
+                }
             }
         } else {
             Write-ColoredMessage "[*] $tool already exists, skipping" -Color Gray

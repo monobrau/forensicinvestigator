@@ -79,11 +79,38 @@ Write-Host "Downloading from: $ScriptUrl" -ForegroundColor Gray
 Write-Host "Saving to: $tempScriptPath" -ForegroundColor Gray
 
 try {
-    Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop
+    $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+    $content = if ($response.Content -is [byte[]]) { 
+        [System.Text.Encoding]::UTF8.GetString($response.Content) 
+    } else { 
+        $response.Content 
+    }
+    
+    # Check for web filter blocking
+    if ($content -match '<html|<HTML|<!DOCTYPE|Securly|web filter|geolocation') {
+        Write-Host "[!] ERROR: GitHub is blocked by a web filter" -ForegroundColor Red
+        Write-Host "    Received HTML page instead of PowerShell script" -ForegroundColor Red
+        Write-Host "" -ForegroundColor Red
+        Write-Host "SOLUTION - Manual Download:" -ForegroundColor Yellow
+        Write-Host "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
+        Write-Host "  2. Click 'Raw' button (top right)" -ForegroundColor Cyan
+        Write-Host "  3. Save as Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
+        Write-Host "  4. Run manually: .\Invoke-ForensicAnalysis.ps1 -OutputPath '$OutputPath'" -ForegroundColor Cyan
+        exit 1
+    }
+    
+    $content | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
     Write-Host "[+] Script downloaded successfully" -ForegroundColor Green
 } catch {
     Write-Host "[!] Failed to download script: $_" -ForegroundColor Red
     Write-Host "    Error details: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "" -ForegroundColor Red
+    Write-Host "POSSIBLE CAUSES:" -ForegroundColor Yellow
+    Write-Host "  - Web filter blocking GitHub" -ForegroundColor Gray
+    Write-Host "  - Network connectivity issues" -ForegroundColor Gray
+    Write-Host "  - Invalid URL" -ForegroundColor Gray
+    Write-Host "" -ForegroundColor Red
+    Write-Host "SOLUTION: Download script manually from GitHub (see instructions above)" -ForegroundColor Yellow
     exit 1
 }
 

@@ -223,7 +223,24 @@ try {
         Write-Log "Downloaded via WebClient" "SUCCESS"
     } catch {
         Write-Log "All download methods failed. Exiting." "ERROR"
-        Write-Log "Possible causes: Web filter blocking GitHub, network issues, or invalid URL" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "ERROR DETAILS: $($_.Exception.Message)" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "POSSIBLE CAUSES:" "ERROR"
+        Write-Log "  - Web filter blocking GitHub (common in schools/organizations)" "ERROR"
+        Write-Log "  - Network connectivity issues" "ERROR"
+        Write-Log "  - Invalid URL or repository not accessible" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "SOLUTION - Manual Download:" "ERROR"
+        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  2. Click 'Raw' button (top right of the code view)" "ERROR"
+        Write-Log "  3. Right-click → Save As → Save as Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "Alternative solutions:" "ERROR"
+        Write-Log "  - Use VPN to bypass web filters" "ERROR"
+        Write-Log "  - Contact network admin to whitelist raw.githubusercontent.com" "ERROR"
+        Write-Log "  - Download from a different network (home, mobile hotspot, etc.)" "ERROR"
         exit 1
     }
 }
