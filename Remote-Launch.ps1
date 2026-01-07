@@ -175,17 +175,55 @@ if ([string]::IsNullOrWhiteSpace($VirusTotalApiKey)) {
 # Download main script
 Write-Log "Downloading forensic analysis script from: $ScriptUrl" "INFO"
 try {
-    $mainScript = Invoke-RestMethod -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+    # Use Invoke-WebRequest to check Content-Type and handle encoding properly
+    $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+    
+    # Check if we got HTML instead of the script (web filter interception)
+    if ($response.Content -match '<html|<HTML|<!DOCTYPE') {
+        Write-Log "WARNING: Received HTML instead of script (likely web filter interception)" "WARN"
+        Write-Log "Attempting alternate download method with User-Agent..." "WARN"
+        
+        # Try with User-Agent header to bypass filters
+        $headers = @{
+            'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        $response = Invoke-WebRequest -Uri $ScriptUrl -Headers $headers -UseBasicParsing -ErrorAction Stop
+    }
+    
+    # Get content as UTF-8 string
+    if ($response.Content -is [byte[]]) {
+        $mainScript = [System.Text.Encoding]::UTF8.GetString($response.Content)
+    } else {
+        $mainScript = $response.Content
+    }
+    
+    # Verify it's actually PowerShell code, not HTML
+    if ($mainScript -match '<html|<HTML|<!DOCTYPE') {
+        throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+    }
+    
     Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
 } catch {
     Write-Log "Failed to download script: $_" "ERROR"
     Write-Log "Attempting alternate download method..." "WARN"
 
     try {
-        $mainScript = (New-Object System.Net.WebClient).DownloadString($ScriptUrl)
+        # Fallback: Use WebClient with User-Agent
+        $webClient = New-Object System.Net.WebClient
+        $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+        $webClient.Encoding = [System.Text.Encoding]::UTF8
+        $mainScript = $webClient.DownloadString($ScriptUrl)
+        $webClient.Dispose()
+        
+        # Verify it's PowerShell code
+        if ($mainScript -match '<html|<HTML|<!DOCTYPE') {
+            throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+        }
+        
         Write-Log "Downloaded via WebClient" "SUCCESS"
     } catch {
         Write-Log "All download methods failed. Exiting." "ERROR"
+        Write-Log "Possible causes: Web filter blocking GitHub, network issues, or invalid URL" "ERROR"
         exit 1
     }
 }

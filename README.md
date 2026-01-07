@@ -285,11 +285,13 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 - Ensure ScreenConnect session has admin rights
 - Or manually run ScreenConnect as admin
 
-**Error: "#!ps not recognized" or Encoding Issues**
-- Try using Invoke-WebRequest instead of Invoke-RestMethod (more reliable for encoding):
+**Error: "#!ps not recognized", Encoding Issues, or Web Filter Blocking**
+- If you get HTML instead of the script (web filter like Securly blocking GitHub), try with User-Agent header:
   ```powershell
-  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$url = 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'; $response = Invoke-WebRequest -Uri $url -UseBasicParsing; $script = [System.Text.Encoding]::UTF8.GetString($response.Content); $tempFile = Join-Path $env:TEMP 'Remote-Launch.ps1'; [System.IO.File]::WriteAllText($tempFile, $script, [System.Text.Encoding]::UTF8); & $tempFile"
+  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$url = 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'; $headers = @{'User-Agent' = 'Mozilla/5.0'}; $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing; if ($response.Content -match '<html') { Write-Host 'ERROR: Web filter blocking GitHub' -ForegroundColor Red; exit 1 }; $script = if ($response.Content -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($response.Content) } else { $response.Content }; $tempFile = Join-Path $env:TEMP 'Remote-Launch.ps1'; [System.IO.File]::WriteAllText($tempFile, $script, [System.Text.Encoding]::UTF8); & $tempFile"
   ```
+- Alternative: Download the script manually from GitHub and run it locally
+- Or use a VPN/proxy if web filters are blocking GitHub
 - Or use `pwsh.exe` for PowerShell 7
 
 **Command appears to hang**

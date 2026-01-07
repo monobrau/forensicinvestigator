@@ -32,16 +32,37 @@ try {
     # Download with explicit UTF-8 handling
     $url = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"
     
-    # Method 1: Try Invoke-RestMethod with explicit encoding
+    # Method 1: Try Invoke-WebRequest with User-Agent to bypass web filters
     try {
-        $response = Invoke-WebRequest -Uri $url -UseBasicParsing -ErrorAction Stop
-        $scriptContent = [System.Text.Encoding]::UTF8.GetString($response.Content)
+        $headers = @{
+            'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing -ErrorAction Stop
+        
+        # Check if we got HTML instead of the script (web filter interception)
+        if ($response.Content -match '<html|<HTML|<!DOCTYPE') {
+            throw "Web filter intercepted request - received HTML instead of script"
+        }
+        
+        # Get content as UTF-8 string
+        if ($response.Content -is [byte[]]) {
+            $scriptContent = [System.Text.Encoding]::UTF8.GetString($response.Content)
+        } else {
+            $scriptContent = $response.Content
+        }
     } catch {
-        # Fallback: Use WebClient with UTF-8
+        # Fallback: Use WebClient with UTF-8 and User-Agent
+        Write-Host "Primary download failed, trying fallback method..." -ForegroundColor Yellow
         $webClient = New-Object System.Net.WebClient
+        $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
         $webClient.Encoding = [System.Text.Encoding]::UTF8
         $scriptContent = $webClient.DownloadString($url)
         $webClient.Dispose()
+        
+        # Verify it's PowerShell code, not HTML
+        if ($scriptContent -match '<html|<HTML|<!DOCTYPE') {
+            throw "Web filter is blocking GitHub. Received HTML page instead of PowerShell script."
+        }
     }
     
     # Save to temp file with explicit UTF-8 encoding
