@@ -286,9 +286,9 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 - Or manually run ScreenConnect as admin
 
 **Error: "#!ps not recognized" or Encoding Issues**
-- Try using the direct PowerShell call method with proper encoding:
+- Try using Invoke-WebRequest instead of Invoke-RestMethod (more reliable for encoding):
   ```powershell
-  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; Invoke-Expression $script"
+  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$url = 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'; $response = Invoke-WebRequest -Uri $url -UseBasicParsing; $script = [System.Text.Encoding]::UTF8.GetString($response.Content); $tempFile = Join-Path $env:TEMP 'Remote-Launch.ps1'; [System.IO.File]::WriteAllText($tempFile, $script, [System.Text.Encoding]::UTF8); & $tempFile"
   ```
 - Or use `pwsh.exe` for PowerShell 7
 
