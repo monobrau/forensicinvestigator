@@ -40,24 +40,24 @@
     .\Remote-Launch.ps1 -EnableVirusTotal -VirusTotalApiKey "your-key"
 
 .EXAMPLE
-    # Via IEX from GitHub
-    iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
+    # Via IEX from GitHub (with proper encoding)
+    $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; Invoke-Expression $script
 
 .EXAMPLE
-    # Via IEX with parameters (using scriptblock for parameter passing)
-    & ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"))) -ExportXLSX
+    # Via IEX with parameters (using scriptblock for parameter passing - with proper encoding)
+    $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; & ([scriptblock]::Create($script)) -ExportXLSX
 
 .EXAMPLE
-    # Via IEX with environment variable
-    $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
+    # Via IEX with environment variable (with proper encoding)
+    $env:VT_API_KEY = "your-api-key"; $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; Invoke-Expression $script
 
 .EXAMPLE
-    # ConnectWise Command - One-liner (no parameters - defaults to CSV)
-    powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
+    # ConnectWise Command - One-liner (no parameters - defaults to CSV, with proper encoding)
+    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; Invoke-Expression $script"
 
 .EXAMPLE
-    # ConnectWise Command - With ExportXLSX parameter (must use scriptblock syntax)
-    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'))) -ExportXLSX"
+    # ConnectWise Command - With ExportXLSX parameter (with proper encoding)
+    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; & ([scriptblock]::Create($script)) -ExportXLSX"
 
 .EXAMPLE
     # With tool cleanup (leaves no trace)
