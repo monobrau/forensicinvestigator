@@ -139,9 +139,8 @@ if (!$isAdmin) {
         if ([string]::IsNullOrWhiteSpace($scriptPath)) {
             # Script was run via IEX, re-download and elevate
             Write-Log "Re-launching with elevation via IEX..." "INFO"
-            $elevateScript = @"
-Start-Process powershell.exe -ArgumentList '-ExecutionPolicy Bypass -NoProfile -Command "iex (irm ''$ScriptUrl'')"' -Verb RunAs
-"@
+            # Use proper encoding when re-downloading
+            $elevateScript = "Start-Process powershell.exe -ArgumentList '-ExecutionPolicy Bypass -NoProfile -Command `"`$script = Invoke-RestMethod -Uri ''$ScriptUrl'' -UseBasicParsing; `$script | Out-File -FilePath ''`$env:TEMP\RemoteLaunch.ps1'' -Encoding UTF8 -Force; & ''`$env:TEMP\RemoteLaunch.ps1''`"' -Verb RunAs"
             Invoke-Expression $elevateScript
             exit
         } else {

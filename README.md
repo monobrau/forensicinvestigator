@@ -121,25 +121,26 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 Execute the script directly from GitHub without saving it to disk:
 
 ```powershell
-# Basic execution (default parameters)
-iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1")
+# Basic execution (default parameters) - with proper encoding
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; Invoke-Expression $script
 ```
 
 **With Parameters (Recommended):**
 ```powershell
-# Using scriptblock for parameter passing (defaults to CSV)
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports"
+# Using scriptblock for parameter passing (defaults to CSV) - with proper encoding
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; & ([scriptblock]::Create($script)) -OutputPath "C:\SecurityReports"
 ```
 
 **With Multiple Parameters:**
 ```powershell
-# CSV output (default) with cleanup
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -CleanupTools
+# CSV output (default) with cleanup - with proper encoding
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; & ([scriptblock]::Create($script)) -OutputPath "C:\SecurityReports" -CleanupTools
 ```
 
 **With VirusTotal:**
 ```powershell
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -EnableVirusTotal -VirusTotalApiKey "your-api-key"
+# With VirusTotal - with proper encoding
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; & ([scriptblock]::Create($script)) -OutputPath "C:\SecurityReports" -EnableVirusTotal -VirusTotalApiKey "your-api-key"
 ```
 
 **Benefits:**
@@ -284,10 +285,10 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 - Ensure ScreenConnect session has admin rights
 - Or manually run ScreenConnect as admin
 
-**Error: "#!ps not recognized"**
-- Try using the direct PowerShell call method instead:
-  ```
-  powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'URL')"
+**Error: "#!ps not recognized" or Encoding Issues**
+- Try using the direct PowerShell call method with proper encoding:
+  ```powershell
+  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; Invoke-Expression $script"
   ```
 - Or use `pwsh.exe` for PowerShell 7
 
