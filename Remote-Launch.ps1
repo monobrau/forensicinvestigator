@@ -178,18 +178,6 @@ try {
     # Use Invoke-WebRequest to check Content-Type and handle encoding properly
     $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
     
-    # Check if we got HTML instead of the script (web filter interception)
-    if ($response.Content -match '<html|<HTML|<!DOCTYPE') {
-        Write-Log "WARNING: Received HTML instead of script (likely web filter interception)" "WARN"
-        Write-Log "Attempting alternate download method with User-Agent..." "WARN"
-        
-        # Try with User-Agent header to bypass filters
-        $headers = @{
-            'User-Agent' = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        $response = Invoke-WebRequest -Uri $ScriptUrl -Headers $headers -UseBasicParsing -ErrorAction Stop
-    }
-    
     # Get content as UTF-8 string
     if ($response.Content -is [byte[]]) {
         $mainScript = [System.Text.Encoding]::UTF8.GetString($response.Content)
@@ -197,9 +185,26 @@ try {
         $mainScript = $response.Content
     }
     
-    # Verify it's actually PowerShell code, not HTML
-    if ($mainScript -match '<html|<HTML|<!DOCTYPE') {
-        throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+    # Check if we got HTML instead of the script (web filter interception)
+    if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter|geolocation') {
+        Write-Log "ERROR: GitHub appears to be blocked by a web filter" "ERROR"
+        Write-Log "Received HTML page instead of PowerShell script" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "SOLUTION: Download the script manually from GitHub:" "ERROR"
+        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  2. Click 'Raw' button (top right)" "ERROR"
+        Write-Log "  3. Save the file as Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "Alternative: Use VPN or contact network admin to whitelist raw.githubusercontent.com" "ERROR"
+        exit 1
+    }
+    
+    # Verify it's PowerShell code
+    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(') {
+        Write-Log "ERROR: Downloaded content doesn't appear to be a PowerShell script" "ERROR"
+        Write-Log "First 200 characters: $($mainScript.Substring(0, [Math]::Min(200, $mainScript.Length)))" "ERROR"
+        exit 1
     }
     
     Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
