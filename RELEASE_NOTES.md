@@ -1,4 +1,54 @@
-# Release Notes - v1.0.0
+# Release Notes
+
+## v2.2.0 - CSV Default Export (2026-01-06)
+
+### 🎯 Major Changes
+
+**CSV is now the default export format** - This change makes the tool work reliably in ScreenConnect backstage and other headless environments where Excel COM automation causes issues (black screens, Office registration problems).
+
+### ✨ New Features
+
+- **Default CSV Export**: Tool now exports to CSV by default, avoiding Excel COM automation issues
+- **New `-ExportXLSX` Flag**: Use this flag to export to Excel format when Excel is available and needed
+- **ScreenConnect Optimized**: No longer attempts Excel COM automation unless explicitly requested
+
+### 🔄 Changed Behavior
+
+- **Removed `-ForceCSV` parameter**: No longer needed since CSV is the default
+- **Excel only checked when `-ExportXLSX` is used**: Prevents Excel COM initialization in headless environments
+- **All documentation updated**: README, Remote-Launch.ps1, and wrapper scripts reflect new defaults
+
+### 📝 Migration Guide
+
+**Old usage (v2.1.4):**
+```powershell
+.\Invoke-ForensicAnalysis.ps1 -ForceCSV -OutputPath "C:\Reports"
+```
+
+**New usage (v2.2.0):**
+```powershell
+# CSV (default) - no flag needed
+.\Invoke-ForensicAnalysis.ps1 -OutputPath "C:\Reports"
+
+# Excel format (when needed)
+.\Invoke-ForensicAnalysis.ps1 -ExportXLSX -OutputPath "C:\Reports"
+```
+
+### 🐛 Bug Fixes
+
+- Fixed Excel COM automation issues in ScreenConnect backstage
+- Eliminated black screen issues when Excel tries to register Office
+- Improved reliability in headless/remote execution environments
+
+### 📊 Technical Details
+
+- **Version**: 2.2.0-CSVDefault-20260106
+- **Breaking Change**: Yes - `-ForceCSV` parameter removed, replaced with `-ExportXLSX`
+- **Backward Compatibility**: Scripts using `-ForceCSV` will need to be updated (or simply remove the flag since CSV is now default)
+
+---
+
+## v1.0.0 - First Official Release
 
 ## 🎉 First Official Release
 
@@ -48,7 +98,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 
 ## 🔧 Technical Details
 
-- **Version**: 2.1.4
+- **Version**: 2.1.4 (superseded by v2.2.0)
 - **Platform**: Windows (PowerShell 5.1+)
 - **Privileges**: Requires Administrator
 - **Dependencies**:

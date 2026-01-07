@@ -12,8 +12,8 @@ A comprehensive PowerShell-based forensic analysis tool that leverages Sysintern
   - Running processes
 - **VirusTotal Integration**: Optional hash-based malware detection for all executables
 - **Smart Export**:
-  - XLSX format with color-coded risk levels (if Excel is installed)
-  - CSV fallback (if Excel is not available)
+  - CSV format by default (works in all environments including ScreenConnect)
+  - XLSX format with color-coded risk levels (use -ExportXLSX flag, requires Excel)
 - **Risk Assessment**: Three-tier color coding system
   - **Red (High Risk)**: Unsigned executables OR VirusTotal detections ≥ 5
   - **Yellow (Medium Risk)**: Unknown publisher OR VirusTotal detections 1-4
@@ -23,7 +23,7 @@ A comprehensive PowerShell-based forensic analysis tool that leverages Sysintern
 
 - **Operating System**: Windows (PowerShell 5.1 or later)
 - **Privileges**: Administrator rights required for full analysis
-- **Optional**: Microsoft Excel (for XLSX export with color coding)
+- **Optional**: Microsoft Excel (for XLSX export with color coding, use -ExportXLSX flag)
 - **Optional**: VirusTotal API key (for malware scanning)
 
 ## Installation
@@ -81,8 +81,8 @@ This will:
 | `EnableVirusTotal` | Switch | No | `$false` | Enable VirusTotal scanning |
 | `ToolsPath` | String | No | `.\SysinternalsTools` | Directory for Sysinternals tools |
 | `CleanupTools` | Switch | No | `$false` | Delete Sysinternals tools after analysis |
-| `CombinedWorkbook` | Switch | No | `$false` | Export to single Excel workbook (slower) |
-| `ForceCSV` | Switch | No | `$false` | Force CSV output even if Excel is available |
+| `ExportXLSX` | Switch | No | `$false` | Export to Excel format (XLSX) instead of CSV. Requires Excel installed. |
+| `CombinedWorkbook` | Switch | No | `$false` | Export to single Excel workbook (slower). Only applies with -ExportXLSX. |
 
 ## Remote Deployment
 
@@ -96,7 +96,7 @@ Download the main script directly and run with custom parameters:
 
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 **Benefits:**
@@ -112,8 +112,8 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 -EnableVirusTotal                       # Enable malware scanning
 -VirusTotalApiKey "your-key"           # VT API key
 -CleanupTools                          # Delete tools after scan
--CombinedWorkbook                      # Single Excel file (slower)
--ForceCSV                              # Force CSV output (skip Excel)
+-ExportXLSX                            # Export to Excel format (requires Excel)
+-CombinedWorkbook                      # Single Excel file (slower, requires -ExportXLSX)
 ```
 
 #### Run Directly from GitHub (No Disk Storage) ✅
@@ -127,14 +127,14 @@ iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/I
 
 **With Parameters (Recommended):**
 ```powershell
-# Using scriptblock for parameter passing
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -ForceCSV
+# Using scriptblock for parameter passing (defaults to CSV)
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports"
 ```
 
 **With Multiple Parameters:**
 ```powershell
-# Force CSV output with cleanup
-& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -ForceCSV -CleanupTools
+# CSV output (default) with cleanup
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"))) -OutputPath "C:\SecurityReports" -CleanupTools
 ```
 
 **With VirusTotal:**
@@ -169,7 +169,7 @@ ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts r
 **Option 1: Basic Scan with Custom Output Path**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 - ✅ Verified working in ScreenConnect
 - Fast execution (2-5 minutes)
@@ -179,7 +179,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 2: Default Output Location**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1"
 ```
 - Saves to `C:\Windows\Temp\ForensicReports\` (when running as SYSTEM)
 - Otherwise saves to `C:\Users\[Username]\AppData\Local\Temp\ForensicReports\`
@@ -187,7 +187,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 3: Combined Workbook (Single Excel File)**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -ExportXLSX -CombinedWorkbook -OutputPath "C:\SecurityReports"
 ```
 - Creates one Excel file with all worksheets
 - Slower than separate files
@@ -196,20 +196,20 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **Option 4: With VirusTotal Scanning**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -EnableVirusTotal -VirusTotalApiKey "your-api-key" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -EnableVirusTotal -VirusTotalApiKey "your-api-key" -OutputPath "C:\SecurityReports"
 ```
 - Scans all executables for malware
 - Takes 30-60+ minutes (API rate limited)
 - Requires free VirusTotal API key
 
-**Option 5: Force CSV Output**
+**Option 5: Export to Excel (XLSX) Format**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -ForceCSV -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -ExportXLSX -OutputPath "C:\SecurityReports"
 ```
-- Forces CSV export even if Excel is available
-- Useful when Excel COM automation fails or is not desired
-- Faster export (no Excel overhead)
+- Exports to Excel format with color-coded risk levels
+- Requires Microsoft Excel to be installed
+- Note: CSV is the default format (works in ScreenConnect without Excel)
 
 #### Saving as Reusable ScreenConnect Command
 
@@ -221,7 +221,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 6. Save and run from the Commands menu anytime
@@ -229,7 +229,7 @@ irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/I
 **For Combined Workbook Version:**
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -CombinedWorkbook -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -ExportXLSX -CombinedWorkbook -OutputPath "C:\SecurityReports"
 ```
 
 #### Retrieving Reports
@@ -262,15 +262,15 @@ To retrieve reports via ScreenConnect:
 
 **Error: "Execution Policy Restricted"**
 
-Try using the direct PowerShell call method:
+Try using the direct PowerShell call method with proper encoding:
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "iex (irm 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1')"
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; $script | Out-File -FilePath '$env:TEMP\RemoteLaunch.ps1' -Encoding UTF8 -Force; & '$env:TEMP\RemoteLaunch.ps1'"
 ```
 
 Or with `#!ps` prefix:
 ```powershell
 #!ps
-Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force; iex (irm "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1")
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\RemoteLaunch.ps1" -Encoding UTF8 -Force; & "$env:TEMP\RemoteLaunch.ps1"
 ```
 
 **Error: "Cannot download script"**
@@ -347,7 +347,7 @@ Use this command in ScreenConnect, replacing `YOUR_BASE64_STRING` with the strin
 
 ```powershell
 #!ps
-$creds = "YOUR_BASE64_STRING"; irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -OutFile "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds
+$creds = "YOUR_BASE64_STRING"; $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\SendReport.ps1" -Encoding UTF8 -Force; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds
 ```
 
 **Option B: Configure Script Locally (Alternative)**
@@ -367,7 +367,7 @@ Then use this command in ScreenConnect:
 
 ```powershell
 #!ps
-irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -OutFile "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\SendReport.ps1" -Encoding UTF8 -Force; & "$env:TEMP\SendReport.ps1"
 ```
 
 **Recommended:** Use Option A (base64) to keep credentials out of GitHub entirely.
@@ -409,7 +409,7 @@ The script will:
 - Use the debug version to see detailed output:
   ```powershell
   #!ps
-  $creds = "YOUR_BASE64_STRING"; Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport-Debug.ps1" -OutFile "$env:TEMP\SendReport-Debug.ps1"; & "$env:TEMP\SendReport-Debug.ps1" -EncryptedCredentialsBase64 $creds
+  $creds = "YOUR_BASE64_STRING"; $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport-Debug.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\SendReport-Debug.ps1" -Encoding UTF8 -Force; & "$env:TEMP\SendReport-Debug.ps1" -EncryptedCredentialsBase64 $creds
   ```
 - Common causes:
   - Encrypted password created on different machine/user (ScreenConnect context issue)
@@ -439,7 +439,7 @@ If you prefer to send emails manually after analysis, you can use the standard f
 
 ### Excel (XLSX) Output
 
-When Microsoft Excel is installed, the tool generates a single Excel workbook with multiple worksheets:
+When using the `-ExportXLSX` flag and Microsoft Excel is installed, the tool generates Excel workbooks:
 
 - **Autoruns**: All autostart entries
 - **Services**: Windows services
@@ -453,22 +453,22 @@ Each worksheet includes:
 - Publisher/signature information
 - Detailed metadata
 
-### CSV Output
+### CSV Output (Default)
 
-When Excel is not available (or when using `-ForceCSV`), separate CSV files are created:
+By default, the tool exports to CSV format which works in all environments including ScreenConnect. Separate CSV files are created:
 
 - `{HOSTNAME}_Autoruns_{TIMESTAMP}.csv`
 - `{HOSTNAME}_Services_{TIMESTAMP}.csv`
 - `{HOSTNAME}_Network_{TIMESTAMP}.csv`
 - `{HOSTNAME}_Processes_{TIMESTAMP}.csv`
 
-**Note**: CSV files include all data but cannot display color coding.
+**Note**: CSV files include all data but cannot display color coding. CSV is the default format and works reliably in ScreenConnect and other headless environments.
 
-**Force CSV Output:**
+**Export to Excel (XLSX) Format:**
 ```powershell
-.\Invoke-ForensicAnalysis.ps1 -ForceCSV -OutputPath "C:\SecurityReports"
+.\Invoke-ForensicAnalysis.ps1 -ExportXLSX -OutputPath "C:\SecurityReports"
 ```
-This will export to CSV even if Excel is installed, useful for environments where Excel COM automation is not desired or unavailable.
+This will export to Excel format with color-coded risk levels. Requires Microsoft Excel to be installed. Use this flag when you need color-coded reports and Excel is available.
 
 ## What Gets Analyzed
 
@@ -557,7 +557,7 @@ All tools are downloaded from `https://live.sysinternals.com/` and accept EULAs 
 Run PowerShell as Administrator for full functionality.
 
 ### "Excel not available"
-The tool will automatically fall back to CSV export. Install Microsoft Excel for color-coded XLSX reports. Alternatively, use the `-ForceCSV` parameter to always export to CSV format.
+The tool defaults to CSV export which works in all environments. To use Excel format, install Microsoft Excel and use the `-ExportXLSX` flag. CSV is recommended for ScreenConnect and headless environments to avoid Excel COM automation issues.
 
 ### VirusTotal Rate Limiting
 Free API keys are limited to 4 requests per minute. The script automatically throttles requests. Consider waiting or using a premium API key for faster analysis.

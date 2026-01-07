@@ -93,7 +93,7 @@ Write-Host "Output Path: $OutputPath" -ForegroundColor Gray
 Write-Host "This may take 2-5 minutes..." -ForegroundColor Yellow
 
 try {
-    & $tempScriptPath -OutputPath $OutputPath -ForceCSV
+    & $tempScriptPath -OutputPath $OutputPath
     Write-Host "[+] Analysis completed" -ForegroundColor Green
 } catch {
     Write-Host "[!] Analysis failed: $_" -ForegroundColor Red

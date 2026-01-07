@@ -27,11 +27,13 @@
 .PARAMETER CleanupTools
     Delete Sysinternals tools after analysis completes
 
-.PARAMETER ForceCSV
-    Force CSV output instead of Excel, even if Excel is available
+.PARAMETER ExportXLSX
+    Export to Excel format (XLSX) instead of CSV. Requires Microsoft Excel to be installed.
+    By default, exports to CSV format which works in all environments including ScreenConnect.
 
 .PARAMETER CombinedWorkbook
-    Export to a single Excel workbook with all worksheets (slower but consolidated)
+    Export to a single Excel workbook with all worksheets (slower but consolidated).
+    Only applies when -ExportXLSX is used.
 
 .EXAMPLE
     # Direct execution
@@ -43,19 +45,19 @@
 
 .EXAMPLE
     # Via IEX with parameters (using scriptblock for parameter passing)
-    & ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"))) -ForceCSV
+    & ([scriptblock]::Create((irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"))) -ExportXLSX
 
 .EXAMPLE
     # Via IEX with environment variable
     $env:VT_API_KEY = "your-api-key"; iex (irm "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1")
 
 .EXAMPLE
-    # ConnectWise Command - One-liner (no parameters)
+    # ConnectWise Command - One-liner (no parameters - defaults to CSV)
     powershell.exe -ExecutionPolicy Bypass -Command "iex (irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1')"
 
 .EXAMPLE
-    # ConnectWise Command - With ForceCSV parameter (must use scriptblock syntax)
-    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'))) -ForceCSV"
+    # ConnectWise Command - With ExportXLSX parameter (must use scriptblock syntax)
+    powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "& ([scriptblock]::Create((irm 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'))) -ExportXLSX"
 
 .EXAMPLE
     # With tool cleanup (leaves no trace)
@@ -86,7 +88,7 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
-    [switch]$ForceCSV,
+    [switch]$ExportXLSX,
 
     [Parameter(Mandatory=$false)]
     [switch]$CombinedWorkbook,
@@ -213,9 +215,9 @@ if ($CleanupTools) {
     Write-Log "Tool cleanup: ENABLED" "INFO"
 }
 
-if ($ForceCSV) {
-    $params.ForceCSV = $true
-    Write-Log "CSV output: FORCED" "INFO"
+if ($ExportXLSX) {
+    $params.ExportXLSX = $true
+    Write-Log "XLSX export: ENABLED" "INFO"
 }
 
 if ($CombinedWorkbook) {

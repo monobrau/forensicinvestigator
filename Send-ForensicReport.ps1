@@ -121,8 +121,8 @@ try {
     # Download main script
     Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop | Out-Null
     
-    # Execute with ForceCSV to generate ZIP file
-    & $tempScriptPath -OutputPath $OutputPath -ForceCSV *>&1 | Out-Null
+    # Execute (defaults to CSV which generates ZIP file)
+    & $tempScriptPath -OutputPath $OutputPath *>&1 | Out-Null
     
     # Step 2: Find the generated ZIP file
     $ZipFile = Get-ChildItem -Path $OutputPath -Filter "*.zip" -ErrorAction SilentlyContinue | 

@@ -21,12 +21,13 @@
 .PARAMETER CleanupTools
     Switch to delete Sysinternals tools folder after analysis completes
 
+.PARAMETER ExportXLSX
+    Switch to export to Excel format (XLSX) instead of CSV. Requires Microsoft Excel to be installed.
+    By default, exports to CSV format which works in all environments including ScreenConnect.
+
 .PARAMETER CombinedWorkbook
     Switch to export to a single Excel workbook with all worksheets (slower but consolidated).
-    By default, exports to separate Excel files for faster performance.
-
-.PARAMETER ForceCSV
-    Switch to force CSV output instead of Excel, even if Excel is available.
+    Only applies when -ExportXLSX is used. By default, exports to separate Excel files for faster performance.
 
 .EXAMPLE
     .\Invoke-ForensicAnalysis.ps1 -EnableVirusTotal -VirusTotalApiKey "your-api-key"
@@ -38,10 +39,10 @@
     .\Invoke-ForensicAnalysis.ps1 -CleanupTools
 
 .EXAMPLE
-    .\Invoke-ForensicAnalysis.ps1 -CombinedWorkbook
+    .\Invoke-ForensicAnalysis.ps1 -ExportXLSX
 
 .EXAMPLE
-    .\Invoke-ForensicAnalysis.ps1 -ForceCSV
+    .\Invoke-ForensicAnalysis.ps1 -ExportXLSX -CombinedWorkbook
 #>
 
 [CmdletBinding()]
@@ -62,16 +63,16 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
-    [switch]$CombinedWorkbook,
+    [switch]$ExportXLSX,
 
     [Parameter(Mandatory=$false)]
-    [switch]$ForceCSV
+    [switch]$CombinedWorkbook
 )
 
 #Requires -RunAsAdministrator
 
 # Script version - for verification
-$script:Version = "2.1.4-FixedEncodingAndCSV-20250123"
+$script:Version = "2.2.0-CSVDefault-20260106"
 
 # Global configuration
 $script:VTApiKey = $VirusTotalApiKey
@@ -923,13 +924,11 @@ function Export-Results {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $hostname = $env:COMPUTERNAME
 
-    # Check if CSV output is forced
-    if ($ForceCSV) {
-        Write-ColoredMessage "[*] CSV output forced - will export to CSV files" -Color Yellow
-        $excelAvailable = $false
-    } else {
-        # Check if Excel is available
-        $excelAvailable = $false
+    # Default to CSV export (works in ScreenConnect and all environments)
+    # Only check for Excel if -ExportXLSX flag is provided
+    $excelAvailable = $false
+    if ($ExportXLSX) {
+        Write-ColoredMessage "[*] XLSX export requested - checking for Microsoft Excel..." -Color Yellow
         try {
             $testExcel = New-Object -ComObject Excel.Application -ErrorAction Stop
             $testExcel.Quit()
@@ -941,8 +940,11 @@ function Export-Results {
                 Write-ColoredMessage "[+] Microsoft Excel detected - will export to separate XLSX files (faster)" -Color Green
             }
         } catch {
-            Write-ColoredMessage "[!] Microsoft Excel not available - will export to CSV" -Color Yellow
+            Write-ColoredMessage "[!] Microsoft Excel not available - falling back to CSV export" -Color Yellow
+            $excelAvailable = $false
         }
+    } else {
+        Write-ColoredMessage "[+] Exporting to CSV format (default)" -Color Green
     }
 
     if ($excelAvailable -and $CombinedWorkbook) {
