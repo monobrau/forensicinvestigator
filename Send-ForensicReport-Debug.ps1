@@ -24,6 +24,13 @@ param(
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 )
 
+# Enable TLS 1.2 for older Windows versions
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 $ErrorActionPreference = "Continue"  # Show errors for debugging
 
 Write-Host "=== Send-ForensicReport Debug Mode ===" -ForegroundColor Cyan
@@ -93,8 +100,8 @@ try {
         Write-Host "" -ForegroundColor Red
         Write-Host "SOLUTION - Manual Download:" -ForegroundColor Yellow
         Write-Host "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
-        Write-Host "  2. Click 'Raw' button (top right)" -ForegroundColor Cyan
-        Write-Host "  3. Save as Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
+        Write-Host "  2. Click 'Raw' button (top right) - CRITICAL: Must use Raw button!" -ForegroundColor Cyan
+        Write-Host "  3. Right-click → Save As → Save as Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
         Write-Host "  4. Run manually: .\Invoke-ForensicAnalysis.ps1 -OutputPath '$OutputPath'" -ForegroundColor Cyan
         exit 1
     }
@@ -102,15 +109,30 @@ try {
     $content | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
     Write-Host "[+] Script downloaded successfully" -ForegroundColor Green
 } catch {
-    Write-Host "[!] Failed to download script: $_" -ForegroundColor Red
-    Write-Host "    Error details: $($_.Exception.Message)" -ForegroundColor Red
+    $errorMsg = $_.Exception.Message
+    Write-Host "[!] Failed to download script: $errorMsg" -ForegroundColor Red
     Write-Host "" -ForegroundColor Red
-    Write-Host "POSSIBLE CAUSES:" -ForegroundColor Yellow
-    Write-Host "  - Web filter blocking GitHub" -ForegroundColor Gray
-    Write-Host "  - Network connectivity issues" -ForegroundColor Gray
-    Write-Host "  - Invalid URL" -ForegroundColor Gray
-    Write-Host "" -ForegroundColor Red
-    Write-Host "SOLUTION: Download script manually from GitHub (see instructions above)" -ForegroundColor Yellow
+    
+    # Check for SSL/TLS errors
+    if ($errorMsg -match 'SSL/TLS|TLS|secure channel|Could not create') {
+        Write-Host "POSSIBLE CAUSE: SSL/TLS error (Windows Server 2012 R2 needs TLS 1.2)" -ForegroundColor Yellow
+        Write-Host "" -ForegroundColor Red
+        Write-Host "SOLUTION - Manual Download:" -ForegroundColor Yellow
+        Write-Host "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
+        Write-Host "  2. Click 'Raw' button (top right) - CRITICAL: Must use Raw button!" -ForegroundColor Cyan
+        Write-Host "  3. Right-click → Save As → Save as Invoke-ForensicAnalysis.ps1" -ForegroundColor Cyan
+        Write-Host "  4. Run manually: .\Invoke-ForensicAnalysis.ps1 -OutputPath '$OutputPath'" -ForegroundColor Cyan
+        Write-Host "" -ForegroundColor Red
+        Write-Host "Alternative: Enable TLS 1.2:" -ForegroundColor Yellow
+        Write-Host "  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" -ForegroundColor Cyan
+    } else {
+        Write-Host "POSSIBLE CAUSES:" -ForegroundColor Yellow
+        Write-Host "  - Web filter blocking GitHub" -ForegroundColor Gray
+        Write-Host "  - Network connectivity issues" -ForegroundColor Gray
+        Write-Host "  - Invalid URL" -ForegroundColor Gray
+        Write-Host "" -ForegroundColor Red
+        Write-Host "SOLUTION: Download script manually from GitHub (see instructions above)" -ForegroundColor Yellow
+    }
     exit 1
 }
 

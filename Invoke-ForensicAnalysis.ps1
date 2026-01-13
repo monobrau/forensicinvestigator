@@ -71,6 +71,14 @@ param(
 
 #Requires -RunAsAdministrator
 
+# Enable TLS 1.2 for older Windows versions (Windows Server 2012 R2 and earlier)
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {
+    # If SecurityProtocolManager doesn't exist, use the older method
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 # Script version - for verification
 $script:Version = "2.2.0-CSVDefault-20260106"
 

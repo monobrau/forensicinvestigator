@@ -97,6 +97,14 @@ param(
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 )
 
+# Enable TLS 1.2 for older Windows versions (Windows Server 2012 R2 and earlier)
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {
+    # If SecurityProtocolManager doesn't exist, use the older method
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -201,15 +209,34 @@ try {
     }
     
     # Verify it's PowerShell code
-    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(') {
+    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
         Write-Log "ERROR: Downloaded content doesn't appear to be a PowerShell script" "ERROR"
+        Write-Log "It may be an HTML page. Make sure you clicked 'Raw' button on GitHub" "ERROR"
         Write-Log "First 200 characters: $($mainScript.Substring(0, [Math]::Min(200, $mainScript.Length)))" "ERROR"
         exit 1
     }
     
     Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
 } catch {
-    Write-Log "Failed to download script: $_" "ERROR"
+    $errorMsg = $_.Exception.Message
+    
+    # Check for SSL/TLS errors
+    if ($errorMsg -match 'SSL/TLS|TLS|secure channel|Could not create') {
+        Write-Log "ERROR: SSL/TLS connection failed (common on Windows Server 2012 R2)" "ERROR"
+        Write-Log "This usually means TLS 1.2 is not enabled" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "SOLUTION - Manual Download:" "ERROR"
+        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  2. Click 'Raw' button (top right) - IMPORTANT: Must use Raw button!" "ERROR"
+        Write-Log "  3. Right-click the page → Save As → Save as Invoke-ForensicAnalysis.ps1" "ERROR"
+        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
+        Write-Log "" "ERROR"
+        Write-Log "Alternative: Enable TLS 1.2 in PowerShell:" "ERROR"
+        Write-Log "  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
+        exit 1
+    }
+    
+    Write-Log "Failed to download script: $errorMsg" "ERROR"
     Write-Log "Attempting alternate download method..." "WARN"
 
     try {
@@ -221,8 +248,13 @@ try {
         $webClient.Dispose()
         
         # Verify it's PowerShell code
-        if ($mainScript -match '<html|<HTML|<!DOCTYPE') {
+        if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter') {
             throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+        }
+        
+        # Verify it's actually PowerShell
+        if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
+            throw "Downloaded content doesn't appear to be a PowerShell script"
         }
         
         Write-Log "Downloaded via WebClient" "SUCCESS"
@@ -232,20 +264,21 @@ try {
         Write-Log "ERROR DETAILS: $($_.Exception.Message)" "ERROR"
         Write-Log "" "ERROR"
         Write-Log "POSSIBLE CAUSES:" "ERROR"
+        Write-Log "  - SSL/TLS error (Windows Server 2012 R2 needs TLS 1.2 enabled)" "ERROR"
         Write-Log "  - Web filter blocking GitHub (common in schools/organizations)" "ERROR"
         Write-Log "  - Network connectivity issues" "ERROR"
         Write-Log "  - Invalid URL or repository not accessible" "ERROR"
         Write-Log "" "ERROR"
         Write-Log "SOLUTION - Manual Download:" "ERROR"
         Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  2. Click 'Raw' button (top right of the code view)" "ERROR"
+        Write-Log "  2. Click 'Raw' button (top right) - CRITICAL: Must use Raw button!" "ERROR"
         Write-Log "  3. Right-click → Save As → Save as Invoke-ForensicAnalysis.ps1" "ERROR"
         Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
         Write-Log "" "ERROR"
         Write-Log "Alternative solutions:" "ERROR"
+        Write-Log "  - Enable TLS 1.2: [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
         Write-Log "  - Use VPN to bypass web filters" "ERROR"
         Write-Log "  - Contact network admin to whitelist raw.githubusercontent.com" "ERROR"
-        Write-Log "  - Download from a different network (home, mobile hotspot, etc.)" "ERROR"
         exit 1
     }
 }

@@ -24,6 +24,13 @@ param(
     [switch]$CleanupTools
 )
 
+# Enable TLS 1.2 for older Windows versions
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 $ErrorActionPreference = "Stop"
 
 try {

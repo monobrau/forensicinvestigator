@@ -63,6 +63,13 @@ param(
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
 )
 
+# Enable TLS 1.2 for older Windows versions
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+}
+
 # Suppress all output to keep credentials secure
 $ErrorActionPreference = "SilentlyContinue"
 
