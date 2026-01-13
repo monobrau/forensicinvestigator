@@ -285,14 +285,32 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 - Ensure ScreenConnect session has admin rights
 - Or manually run ScreenConnect as admin
 
-**Error: "#!ps not recognized", Encoding Issues, or Web Filter Blocking**
-- If you get HTML instead of the script (web filter like Securly blocking GitHub), try with User-Agent header:
-  ```powershell
-  powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$url = 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1'; $headers = @{'User-Agent' = 'Mozilla/5.0'}; $response = Invoke-WebRequest -Uri $url -Headers $headers -UseBasicParsing; if ($response.Content -match '<html') { Write-Host 'ERROR: Web filter blocking GitHub' -ForegroundColor Red; exit 1 }; $script = if ($response.Content -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($response.Content) } else { $response.Content }; $tempFile = Join-Path $env:TEMP 'Remote-Launch.ps1'; [System.IO.File]::WriteAllText($tempFile, $script, [System.Text.Encoding]::UTF8); & $tempFile"
-  ```
-- Alternative: Download the script manually from GitHub and run it locally
-- Or use a VPN/proxy if web filters are blocking GitHub
-- Or use `pwsh.exe` for PowerShell 7
+**Error: "#!ps not recognized", Encoding Issues, SSL/TLS Errors, or Web Filter Blocking**
+
+**SSL/TLS Error (Windows Server 2012 R2):**
+If you see "Could not create SSL/TLS secure channel":
+```powershell
+# Enable TLS 1.2 first, then download
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$url = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1"
+$response = Invoke-WebRequest -Uri $url -UseBasicParsing
+$script = if ($response.Content -is [byte[]]) { [System.Text.Encoding]::UTF8.GetString($response.Content) } else { $response.Content }
+$tempFile = Join-Path $env:TEMP "Remote-Launch.ps1"
+[System.IO.File]::WriteAllText($tempFile, $script, [System.Text.Encoding]::UTF8)
+& $tempFile
+```
+
+**Web Filter Blocking GitHub:**
+If you get HTML instead of the script, download manually:
+1. Open: `https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1`
+2. Click **"Raw"** button (top right) - CRITICAL: Must use Raw button!
+3. Right-click → Save As → Save as `Invoke-ForensicAnalysis.ps1`
+4. Run: `.\Invoke-ForensicAnalysis.ps1 -OutputPath "C:\SecurityReports"`
+
+**Alternative solutions:**
+- Use VPN/proxy to bypass web filters
+- Contact network admin to whitelist `raw.githubusercontent.com`
+- Use `pwsh.exe` for PowerShell 7 (may have better TLS support)
 
 **Command appears to hang**
 - This is normal for VirusTotal scans (can take 30-60 minutes)
