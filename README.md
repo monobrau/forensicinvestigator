@@ -562,6 +562,29 @@ Run PowerShell as Administrator for full functionality.
 ### "Excel not available"
 The tool defaults to CSV export which works in all environments. To use Excel format, install Microsoft Excel and use the `-ExportXLSX` flag. CSV is recommended for ScreenConnect and headless environments to avoid Excel COM automation issues.
 
+### SSL/TLS Error: "Could not create SSL/TLS secure channel"
+This error occurs on Windows Server 2012 R2 and earlier because TLS 1.2 is not enabled by default. The scripts now automatically enable TLS 1.2, but if you still get this error:
+
+**Solution 1: Enable TLS 1.2 manually**
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+```
+
+**Solution 2: Download manually**
+1. Open: `https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1`
+2. Click **"Raw"** button (top right)
+3. Save the file as `Invoke-ForensicAnalysis.ps1`
+4. Run: `.\Invoke-ForensicAnalysis.ps1 -OutputPath "C:\SecurityReports"`
+
+### Downloaded HTML instead of PowerShell script
+If you see CSS/HTML code (like `--tab-size-preference: 4;`) when running the script, you downloaded the GitHub web page instead of the raw script.
+
+**Solution:**
+1. Make sure you clicked the **"Raw"** button on GitHub (not just viewing the file)
+2. The Raw button shows the actual PowerShell code without HTML
+3. Right-click → Save As → Save as `.ps1` file
+4. Verify the file starts with `<#` or `[CmdletBinding()]` (not `<html>`)
+
 ### VirusTotal Rate Limiting
 Free API keys are limited to 4 requests per minute. The script automatically throttles requests. Consider waiting or using a premium API key for faster analysis.
 
