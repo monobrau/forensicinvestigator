@@ -954,10 +954,13 @@ function Export-Results {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $hostname = $env:COMPUTERNAME
 
-    # Default to CSV export (works in ScreenConnect and all environments)
-    # Only check for Excel if -ExportXLSX flag is provided
+    # ALWAYS default to CSV export (works in ScreenConnect and all environments)
+    # Excel COM is NEVER checked unless -ExportXLSX flag is explicitly provided
+    # This prevents Excel registration issues in headless environments
     $excelAvailable = $false
+    
     if ($ExportXLSX) {
+        # Only check for Excel if user explicitly requested XLSX export
         Write-ColoredMessage "[*] XLSX export requested - checking for Microsoft Excel..." -Color Yellow
         try {
             $testExcel = New-Object -ComObject Excel.Application -ErrorAction Stop
@@ -974,7 +977,8 @@ function Export-Results {
             $excelAvailable = $false
         }
     } else {
-        Write-ColoredMessage "[+] Exporting to CSV format (default)" -Color Green
+        # Default: CSV export (no Excel COM initialization)
+        Write-ColoredMessage "[+] Exporting to CSV format (default - no Excel required)" -Color Green
     }
 
     if ($excelAvailable -and $CombinedWorkbook) {
