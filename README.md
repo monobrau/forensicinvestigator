@@ -265,13 +265,13 @@ To retrieve reports via ScreenConnect:
 
 Try using the direct PowerShell call method with proper encoding:
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; $script | Out-File -FilePath '$env:TEMP\RemoteLaunch.ps1' -Encoding UTF8 -Force; & '$env:TEMP\RemoteLaunch.ps1'"
+powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1' -UseBasicParsing; $tempFile = Join-Path $env:TEMP 'Remote-Launch.ps1'; $script | Out-File -FilePath $tempFile -Encoding UTF8 -Force; & $tempFile"
 ```
 
 Or with `#!ps` prefix:
 ```powershell
 #!ps
-$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\RemoteLaunch.ps1" -Encoding UTF8 -Force; & "$env:TEMP\RemoteLaunch.ps1"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; $tempFile = Join-Path $env:TEMP "Remote-Launch.ps1"; $script | Out-File -FilePath $tempFile -Encoding UTF8 -Force; & $tempFile
 ```
 
 **Error: "Cannot download script"**
