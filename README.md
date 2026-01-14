@@ -96,7 +96,7 @@ Download the main script directly and run with custom parameters:
 
 ```powershell
 #!ps
-$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 **Benefits:**
@@ -163,14 +163,14 @@ ConnectWise ScreenConnect provides multiple ways to execute PowerShell scripts r
 3. Paste one of the tested commands below (ScreenConnect will auto-detect the `#!ps` prefix)
 4. Press **Enter** or click **Run**
 
-**Note:** Replace `YOUR_USERNAME` in the URLs below with your GitHub username (or use the full URL to your hosted script location).
+**Note:** The URLs below use `monobrau` as the GitHub username. If you've forked this repository, replace `monobrau` with your GitHub username.
 
 #### Recommended Commands (Tested ✅)
 
 **Option 1: Basic Scan with Custom Output Path**
 ```powershell
 #!ps
-$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 - ✅ Verified working in ScreenConnect
 - Fast execution (2-5 minutes)
@@ -222,7 +222,7 @@ $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAM
 
 ```powershell
 #!ps
-$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 6. Save and run from the Commands menu anytime
@@ -271,7 +271,7 @@ powershell.exe -ExecutionPolicy Bypass -NoProfile -Command "$script = Invoke-Res
 Or with `#!ps` prefix:
 ```powershell
 #!ps
-$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/YOUR_USERNAME/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\RemoteLaunch.ps1" -Encoding UTF8 -Force; & "$env:TEMP\RemoteLaunch.ps1"
+$script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Remote-Launch.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\RemoteLaunch.ps1" -Encoding UTF8 -Force; & "$env:TEMP\RemoteLaunch.ps1"
 ```
 
 **Error: "Cannot download script"**
