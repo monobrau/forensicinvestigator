@@ -27,15 +27,6 @@
 .PARAMETER CleanupTools
     Delete Sysinternals tools after analysis completes
 
-<<<<<<< HEAD
-.PARAMETER ExportXLSX
-    Export to Excel format (XLSX) instead of CSV. Requires Microsoft Excel to be installed.
-    By default, exports to CSV format which works in all environments including ScreenConnect.
-
-.PARAMETER CombinedWorkbook
-    Export to a single Excel workbook with all worksheets (slower but consolidated).
-    Only applies when -ExportXLSX is used.
-=======
 .PARAMETER ScriptUrl
     URL to download Invoke-ForensicAnalysis.ps1 from. Defaults to GitHub main branch.
     Use this parameter if GitHub is blocked and you have an alternative hosting location.
@@ -43,7 +34,6 @@
 .PARAMETER LocalScriptPath
     Local file path to Invoke-ForensicAnalysis.ps1. If provided, this takes precedence over ScriptUrl.
     Use this when running from a local file or network share instead of downloading from the web.
->>>>>>> 7e577c8 (Add automatic GitHub alternative domain fallback support)
 
 .EXAMPLE
     # Direct execution
@@ -106,20 +96,10 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
-<<<<<<< HEAD
-    [switch]$ExportXLSX,
-
-    [Parameter(Mandatory=$false)]
-    [switch]$CombinedWorkbook,
-
-    [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
-=======
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1",
     
     [Parameter(Mandatory=$false)]
     [string]$LocalScriptPath = ""
->>>>>>> 7e577c8 (Add automatic GitHub alternative domain fallback support)
 )
 
 # Enable TLS 1.2 for older Windows versions (Windows Server 2012 R2 and earlier)
