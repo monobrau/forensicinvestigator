@@ -320,59 +320,6 @@ if (![string]::IsNullOrWhiteSpace($LocalScriptPath) -and (Test-Path $LocalScript
             Write-Log "  3. Save the file as Invoke-ForensicAnalysis.ps1" "ERROR"
             Write-Log "  4. Run: .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
             exit 1
-                
-                Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
-                $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
-            } catch {
-                $errorMsg = $_.Exception.Message
-                
-                # Check for SSL/TLS errors
-                if ($errorMsg -match 'SSL/TLS|TLS|secure channel|Could not create') {
-                    Write-Log "ERROR: SSL/TLS connection failed (common on Windows Server 2012 R2)" "ERROR"
-                    Write-Log "This usually means TLS 1.2 is not enabled" "ERROR"
-                    Write-Log "" "ERROR"
-                    Write-Log "SOLUTION - Use Local Script:" "ERROR"
-                    Write-Log "  .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
-                    Write-Log "" "ERROR"
-                    Write-Log "Or enable TLS 1.2: [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
-                    exit 1
-                }
-                
-                Write-Log "Failed to download script: $errorMsg" "ERROR"
-                Write-Log "Attempting alternate download method..." "WARN"
-
-                try {
-                    # Fallback: Use WebClient with User-Agent
-                    $webClient = New-Object System.Net.WebClient
-                    $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-                    $webClient.Encoding = [System.Text.Encoding]::UTF8
-                    $mainScript = $webClient.DownloadString($ScriptUrl)
-                    $webClient.Dispose()
-                    
-                    # Verify it's PowerShell code
-                    if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter') {
-                        throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
-                    }
-                    
-                    # Verify it's actually PowerShell
-                    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
-                        throw "Downloaded content doesn't appear to be a PowerShell script"
-                    }
-                    
-                    Write-Log "Downloaded via WebClient" "SUCCESS"
-                    $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
-                } catch {
-                    Write-Log "All download methods failed. Exiting." "ERROR"
-                    Write-Log "" "ERROR"
-                    Write-Log "ERROR DETAILS: $($_.Exception.Message)" "ERROR"
-                    Write-Log "" "ERROR"
-                    Write-Log "SOLUTION - Use Local Script:" "ERROR"
-                    Write-Log "  .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
-                    Write-Log "" "ERROR"
-                    Write-Log "Or download manually and use -LocalScriptPath parameter" "ERROR"
-                    exit 1
-                }
-            }
         }
     } else {
         # Non-GitHub URL - try direct download
