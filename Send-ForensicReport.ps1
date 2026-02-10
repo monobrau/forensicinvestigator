@@ -26,6 +26,11 @@
 
 .PARAMETER ScriptUrl
     URL to download Invoke-ForensicAnalysis.ps1 from. Defaults to GitHub main branch.
+    Use this parameter if GitHub is blocked and you have an alternative hosting location.
+
+.PARAMETER LocalScriptPath
+    Local file path to Invoke-ForensicAnalysis.ps1. If provided, this takes precedence over ScriptUrl.
+    Use this when running from a local file or network share instead of downloading from the web.
 
 .EXAMPLE
     .\Send-ForensicReport.ps1
@@ -60,7 +65,10 @@ param(
     [string]$OutputPath = "C:\SecurityReports",
     
     [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$LocalScriptPath = ""
 )
 
 # Enable TLS 1.2 for older Windows versions
@@ -121,10 +129,53 @@ if ([string]::IsNullOrWhiteSpace($EncryptedPassword)) {
 # MAIN EXECUTION
 # ============================================================================
 
+# Function to try multiple GitHub alternative domains
+function Get-ScriptFromGitHub {
+    param(
+        [string]$OriginalUrl,
+        [string]$OutputPath
+    )
+    
+    # Extract user/repo/branch/file from GitHub URL
+    if ($OriginalUrl -match 'raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.+)') {
+        $user = $matches[1]
+        $repo = $matches[2]
+        $branch = $matches[3]
+        $file = $matches[4]
+        
+        # Alternative GitHub domains/CDNs to try
+        $alternatives = @(
+            # Original GitHub
+            "https://raw.githubusercontent.com/$user/$repo/$branch/$file",
+            # jsDelivr CDN (free, production-ready)
+            "https://cdn.jsdelivr.net/gh/$user/$repo@$branch/$file",
+            # StaticDelivr CDN (production CDN)
+            "https://cdn.staticdelivr.com/gh/$user/$repo/$branch/$file",
+            # Githack (caching proxy)
+            "https://raw.githack.com/$user/$repo/$branch/$file",
+            # Rawgit (caching proxy)
+            "https://rawgit.net/$user/$repo/$branch/$file"
+        )
+        
+        foreach ($altUrl in $alternatives) {
+            try {
+                $script = Invoke-RestMethod -Uri $altUrl -UseBasicParsing -ErrorAction Stop -TimeoutSec 10
+                $script | Out-File -FilePath $OutputPath -Encoding UTF8 -Force
+                return $true
+            } catch {
+                continue
+            }
+        }
+    }
+    
+    return $false
+}
+
 try {
     # Step 1: Download and execute forensic analysis script
     $tempScriptPath = Join-Path $env:TEMP "Invoke-ForensicAnalysis.ps1"
     
+<<<<<<< HEAD
     # Download main script with error handling
     try {
         $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
@@ -143,6 +194,47 @@ try {
         $content | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
     } catch {
         # Silent failure - don't expose errors
+=======
+    # Check if local script path is provided and exists
+    if (![string]::IsNullOrWhiteSpace($LocalScriptPath) -and (Test-Path $LocalScriptPath)) {
+        # Use local script file
+        Copy-Item $LocalScriptPath -Destination $tempScriptPath -Force -ErrorAction Stop | Out-Null
+    } elseif (![string]::IsNullOrWhiteSpace($ScriptUrl)) {
+        # Check if it's a GitHub URL - try alternatives automatically
+        if ($ScriptUrl -match 'githubusercontent\.com|github\.com') {
+            # Try alternative GitHub domains
+            $success = Get-ScriptFromGitHub -OriginalUrl $ScriptUrl -OutputPath $tempScriptPath
+            
+            if (-not $success) {
+                # Fall back to original URL
+                try {
+                    Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop | Out-Null
+                } catch {
+                    # Try alternate download method
+                    try {
+                        (New-Object System.Net.WebClient).DownloadFile($ScriptUrl, $tempScriptPath)
+                    } catch {
+                        # Download failed - exit silently
+                        exit 0
+                    }
+                }
+            }
+        } else {
+            # Non-GitHub URL - try direct download
+            try {
+                Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop | Out-Null
+            } catch {
+                # Try alternate download method
+                try {
+                    (New-Object System.Net.WebClient).DownloadFile($ScriptUrl, $tempScriptPath)
+                } catch {
+                    # Download failed - exit silently
+                    exit 0
+                }
+            }
+        }
+    } else {
+        # No script source provided - exit silently
         exit 0
     }
     

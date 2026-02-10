@@ -21,7 +21,10 @@ param(
     [string]$OutputPath = "C:\SecurityReports",
     
     [Parameter(Mandatory=$false)]
-    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$LocalScriptPath = ""
 )
 
 # Enable TLS 1.2 for older Windows versions
@@ -79,12 +82,52 @@ if ([string]::IsNullOrWhiteSpace($EncryptedPassword)) {
     Write-Host "[!] Warning: Using default encrypted password (not configured)" -ForegroundColor Yellow
 }
 
-Write-Host ""
-Write-Host "=== Step 1: Download Script ===" -ForegroundColor Cyan
-$tempScriptPath = Join-Path $env:TEMP "Invoke-ForensicAnalysis.ps1"
-Write-Host "Downloading from: $ScriptUrl" -ForegroundColor Gray
-Write-Host "Saving to: $tempScriptPath" -ForegroundColor Gray
+# Function to try multiple GitHub alternative domains
+function Get-ScriptFromGitHub {
+    param(
+        [string]$OriginalUrl,
+        [string]$OutputPath
+    )
+    
+    # Extract user/repo/branch/file from GitHub URL
+    if ($OriginalUrl -match 'raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.+)') {
+        $user = $matches[1]
+        $repo = $matches[2]
+        $branch = $matches[3]
+        $file = $matches[4]
+        
+        # Alternative GitHub domains/CDNs to try
+        $alternatives = @(
+            # Original GitHub
+            "https://raw.githubusercontent.com/$user/$repo/$branch/$file",
+            # jsDelivr CDN (free, production-ready)
+            "https://cdn.jsdelivr.net/gh/$user/$repo@$branch/$file",
+            # StaticDelivr CDN (production CDN)
+            "https://cdn.staticdelivr.com/gh/$user/$repo/$branch/$file",
+            # Githack (caching proxy)
+            "https://raw.githack.com/$user/$repo/$branch/$file",
+            # Rawgit (caching proxy)
+            "https://rawgit.net/$user/$repo/$branch/$file"
+        )
+        
+        foreach ($altUrl in $alternatives) {
+            try {
+                Write-Host "    Trying: $altUrl" -ForegroundColor Gray
+                $script = Invoke-RestMethod -Uri $altUrl -UseBasicParsing -ErrorAction Stop -TimeoutSec 10
+                Write-Host "[+] Successfully downloaded from: $altUrl" -ForegroundColor Green
+                $script | Out-File -FilePath $OutputPath -Encoding UTF8 -Force
+                return $true
+            } catch {
+                Write-Host "    Failed: $($_.Exception.Message)" -ForegroundColor DarkGray
+                continue
+            }
+        }
+    }
+    
+    return $false
+}
 
+<<<<<<< HEAD
 try {
     $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
     $content = if ($response.Content -is [byte[]]) { 
@@ -133,6 +176,59 @@ try {
         Write-Host "" -ForegroundColor Red
         Write-Host "SOLUTION: Download script manually from GitHub (see instructions above)" -ForegroundColor Yellow
     }
+=======
+Write-Host ""
+Write-Host "=== Step 1: Load Script ===" -ForegroundColor Cyan
+$tempScriptPath = Join-Path $env:TEMP "Invoke-ForensicAnalysis.ps1"
+
+# Check if local script path is provided and exists
+if (![string]::IsNullOrWhiteSpace($LocalScriptPath) -and (Test-Path $LocalScriptPath)) {
+    Write-Host "Using local script file: $LocalScriptPath" -ForegroundColor Gray
+    Write-Host "Copying to: $tempScriptPath" -ForegroundColor Gray
+    try {
+        Copy-Item $LocalScriptPath -Destination $tempScriptPath -Force -ErrorAction Stop
+        Write-Host "[+] Script copied successfully" -ForegroundColor Green
+    } catch {
+        Write-Host "[!] Failed to copy script: $_" -ForegroundColor Red
+        Write-Host "    Error details: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
+} elseif (![string]::IsNullOrWhiteSpace($ScriptUrl)) {
+    Write-Host "Downloading from: $ScriptUrl" -ForegroundColor Gray
+    Write-Host "Saving to: $tempScriptPath" -ForegroundColor Gray
+    
+    # Check if it's a GitHub URL - try alternatives automatically
+    if ($ScriptUrl -match 'githubusercontent\.com|github\.com') {
+        Write-Host "GitHub URL detected - trying alternative domains..." -ForegroundColor Yellow
+        $success = Get-ScriptFromGitHub -OriginalUrl $ScriptUrl -OutputPath $tempScriptPath
+        
+        if (-not $success) {
+            Write-Host "All alternative domains failed, trying original URL..." -ForegroundColor Yellow
+            try {
+                Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop
+                Write-Host "[+] Script downloaded successfully" -ForegroundColor Green
+            } catch {
+                Write-Host "[!] Failed to download script: $_" -ForegroundColor Red
+                Write-Host "    Error details: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host "    TIP: Use -LocalScriptPath parameter with a local file path if GitHub is blocked" -ForegroundColor Yellow
+                exit 1
+            }
+        }
+    } else {
+        # Non-GitHub URL
+        try {
+            Invoke-RestMethod -Uri $ScriptUrl -OutFile $tempScriptPath -UseBasicParsing -ErrorAction Stop
+            Write-Host "[+] Script downloaded successfully" -ForegroundColor Green
+        } catch {
+            Write-Host "[!] Failed to download script: $_" -ForegroundColor Red
+            Write-Host "    Error details: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "    TIP: Use -LocalScriptPath parameter with a local file path" -ForegroundColor Yellow
+            exit 1
+        }
+    }
+} else {
+    Write-Host "[!] ERROR: No script source provided" -ForegroundColor Red
+    Write-Host "    Use -ScriptUrl or -LocalScriptPath parameter" -ForegroundColor Yellow
     exit 1
 }
 

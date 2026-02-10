@@ -27,6 +27,7 @@
 .PARAMETER CleanupTools
     Delete Sysinternals tools after analysis completes
 
+<<<<<<< HEAD
 .PARAMETER ExportXLSX
     Export to Excel format (XLSX) instead of CSV. Requires Microsoft Excel to be installed.
     By default, exports to CSV format which works in all environments including ScreenConnect.
@@ -34,6 +35,15 @@
 .PARAMETER CombinedWorkbook
     Export to a single Excel workbook with all worksheets (slower but consolidated).
     Only applies when -ExportXLSX is used.
+=======
+.PARAMETER ScriptUrl
+    URL to download Invoke-ForensicAnalysis.ps1 from. Defaults to GitHub main branch.
+    Use this parameter if GitHub is blocked and you have an alternative hosting location.
+
+.PARAMETER LocalScriptPath
+    Local file path to Invoke-ForensicAnalysis.ps1. If provided, this takes precedence over ScriptUrl.
+    Use this when running from a local file or network share instead of downloading from the web.
+>>>>>>> 7e577c8 (Add automatic GitHub alternative domain fallback support)
 
 .EXAMPLE
     # Direct execution
@@ -62,6 +72,14 @@
 .EXAMPLE
     # With tool cleanup (leaves no trace)
     .\Remote-Launch.ps1 -CleanupTools -EnableVirusTotal
+
+.EXAMPLE
+    # Using local script file (when GitHub is blocked)
+    .\Remote-Launch.ps1 -LocalScriptPath "\\server\share\Invoke-ForensicAnalysis.ps1"
+
+.EXAMPLE
+    # Using alternative hosting URL
+    .\Remote-Launch.ps1 -ScriptUrl "https://your-cdn.com/scripts/Invoke-ForensicAnalysis.ps1"
 #>
 
 [CmdletBinding()]
@@ -88,6 +106,7 @@ param(
     [switch]$CleanupTools,
 
     [Parameter(Mandatory=$false)]
+<<<<<<< HEAD
     [switch]$ExportXLSX,
 
     [Parameter(Mandatory=$false)]
@@ -95,6 +114,12 @@ param(
 
     [Parameter(Mandatory=$false)]
     [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
+=======
+    [string]$ScriptUrl = "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1",
+    
+    [Parameter(Mandatory=$false)]
+    [string]$LocalScriptPath = ""
+>>>>>>> 7e577c8 (Add automatic GitHub alternative domain fallback support)
 )
 
 # Enable TLS 1.2 for older Windows versions (Windows Server 2012 R2 and earlier)
@@ -180,113 +205,202 @@ if ([string]::IsNullOrWhiteSpace($VirusTotalApiKey)) {
     }
 }
 
-# Download main script
-Write-Log "Downloading forensic analysis script from: $ScriptUrl" "INFO"
-try {
-    # Use Invoke-WebRequest to check Content-Type and handle encoding properly
-    $response = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+# Function to try multiple GitHub alternative domains
+function Get-ScriptFromGitHub {
+    param(
+        [string]$OriginalUrl,
+        [string]$OutputPath
+    )
     
-    # Get content as UTF-8 string
-    if ($response.Content -is [byte[]]) {
-        $mainScript = [System.Text.Encoding]::UTF8.GetString($response.Content)
-    } else {
-        $mainScript = $response.Content
-    }
-    
-    # Check if we got HTML instead of the script (web filter interception)
-    if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter|geolocation') {
-        Write-Log "ERROR: GitHub appears to be blocked by a web filter" "ERROR"
-        Write-Log "Received HTML page instead of PowerShell script" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "SOLUTION: Download the script manually from GitHub:" "ERROR"
-        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  2. Click 'Raw' button (top right)" "ERROR"
-        Write-Log "  3. Save the file as Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "Alternative: Use VPN or contact network admin to whitelist raw.githubusercontent.com" "ERROR"
-        exit 1
-    }
-    
-    # Verify it's PowerShell code
-    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
-        Write-Log "ERROR: Downloaded content doesn't appear to be a PowerShell script" "ERROR"
-        Write-Log "It may be an HTML page. Make sure you clicked 'Raw' button on GitHub" "ERROR"
-        Write-Log "First 200 characters: $($mainScript.Substring(0, [Math]::Min(200, $mainScript.Length)))" "ERROR"
-        exit 1
-    }
-    
-    Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
-} catch {
-    $errorMsg = $_.Exception.Message
-    
-    # Check for SSL/TLS errors
-    if ($errorMsg -match 'SSL/TLS|TLS|secure channel|Could not create') {
-        Write-Log "ERROR: SSL/TLS connection failed (common on Windows Server 2012 R2)" "ERROR"
-        Write-Log "This usually means TLS 1.2 is not enabled" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "SOLUTION - Manual Download:" "ERROR"
-        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  2. Click 'Raw' button (top right) - IMPORTANT: Must use Raw button!" "ERROR"
-        Write-Log "  3. Right-click the page → Save As → Save as Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "Alternative: Enable TLS 1.2 in PowerShell:" "ERROR"
-        Write-Log "  [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
-        exit 1
-    }
-    
-    Write-Log "Failed to download script: $errorMsg" "ERROR"
-    Write-Log "Attempting alternate download method..." "WARN"
-
-    try {
-        # Fallback: Use WebClient with User-Agent
-        $webClient = New-Object System.Net.WebClient
-        $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        $webClient.Encoding = [System.Text.Encoding]::UTF8
-        $mainScript = $webClient.DownloadString($ScriptUrl)
-        $webClient.Dispose()
+    # Extract user/repo/branch/file from GitHub URL
+    if ($OriginalUrl -match 'raw\.githubusercontent\.com/([^/]+)/([^/]+)/([^/]+)/(.+)') {
+        $user = $matches[1]
+        $repo = $matches[2]
+        $branch = $matches[3]
+        $file = $matches[4]
         
-        # Verify it's PowerShell code
-        if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter') {
-            throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+        # Alternative GitHub domains/CDNs to try (skip original, try it last)
+        $alternatives = @(
+            # jsDelivr CDN (free, production-ready) - try first
+            "https://cdn.jsdelivr.net/gh/$user/$repo@$branch/$file",
+            # StaticDelivr CDN (production CDN)
+            "https://cdn.staticdelivr.com/gh/$user/$repo/$branch/$file",
+            # Githack (caching proxy)
+            "https://raw.githack.com/$user/$repo/$branch/$file",
+            # Rawgit (caching proxy)
+            "https://rawgit.net/$user/$repo/$branch/$file",
+            # Original GitHub - try last
+            "https://raw.githubusercontent.com/$user/$repo/$branch/$file"
+        )
+        
+        foreach ($altUrl in $alternatives) {
+            try {
+                Write-Log "Trying: $altUrl" "INFO"
+                # Use Invoke-WebRequest to check Content-Type and handle encoding properly
+                $response = Invoke-WebRequest -Uri $altUrl -UseBasicParsing -ErrorAction Stop -TimeoutSec 10
+                
+                # Check Content-Type header first - if HTML, skip immediately
+                $contentType = $response.Headers['Content-Type']
+                if ($contentType -and $contentType -match 'text/html') {
+                    Write-Log "Received HTML Content-Type from: $altUrl" "WARN"
+                    continue
+                }
+                
+                # Get content as UTF-8 string
+                if ($response.Content -is [byte[]]) {
+                    $script = [System.Text.Encoding]::UTF8.GetString($response.Content)
+                } else {
+                    $script = $response.Content
+                }
+                
+                # Only check for HTML if Content-Type wasn't clear
+                if (-not $contentType -or $contentType -notmatch 'text/plain|application/octet-stream|text/x-powershell') {
+                    # Check first 500 chars for HTML patterns (more lenient)
+                    $checkLength = [Math]::Min(500, $script.Length)
+                    if ($checkLength -gt 0) {
+                        $first500 = $script.Substring(0, $checkLength)
+                        if ($first500 -match '<html|<HTML|<!DOCTYPE') {
+                            Write-Log "Received HTML page instead of script from: $altUrl" "WARN"
+                            continue
+                        }
+                    }
+                }
+                
+                # Verify it's PowerShell code (check first 1000 chars)
+                $checkLength = [Math]::Min(1000, $script.Length)
+                if ($checkLength -gt 0) {
+                    $first1000 = $script.Substring(0, $checkLength)
+                    if ($first1000 -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]|#Requires|\.DESCRIPTION') {
+                        Write-Log "Content doesn't appear to be PowerShell script from: $altUrl" "WARN"
+                        continue
+                    }
+                } else {
+                    Write-Log "Script content is empty from: $altUrl" "WARN"
+                    continue
+                }
+                
+                Write-Log "Successfully downloaded from: $altUrl ($($script.Length) bytes)" "SUCCESS"
+                $script | Out-File -FilePath $OutputPath -Encoding UTF8 -Force
+                return $true
+            } catch {
+                Write-Log "Failed: $altUrl - $($_.Exception.Message)" "WARN"
+                continue
+            }
         }
-        
-        # Verify it's actually PowerShell
-        if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
-            throw "Downloaded content doesn't appear to be a PowerShell script"
-        }
-        
-        Write-Log "Downloaded via WebClient" "SUCCESS"
-    } catch {
-        Write-Log "All download methods failed. Exiting." "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "ERROR DETAILS: $($_.Exception.Message)" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "POSSIBLE CAUSES:" "ERROR"
-        Write-Log "  - SSL/TLS error (Windows Server 2012 R2 needs TLS 1.2 enabled)" "ERROR"
-        Write-Log "  - Web filter blocking GitHub (common in schools/organizations)" "ERROR"
-        Write-Log "  - Network connectivity issues" "ERROR"
-        Write-Log "  - Invalid URL or repository not accessible" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "SOLUTION - Manual Download:" "ERROR"
-        Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  2. Click 'Raw' button (top right) - CRITICAL: Must use Raw button!" "ERROR"
-        Write-Log "  3. Right-click → Save As → Save as Invoke-ForensicAnalysis.ps1" "ERROR"
-        Write-Log "  4. Run: .\Invoke-ForensicAnalysis.ps1 -OutputPath 'C:\SecurityReports'" "ERROR"
-        Write-Log "" "ERROR"
-        Write-Log "Alternative solutions:" "ERROR"
-        Write-Log "  - Enable TLS 1.2: [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
-        Write-Log "  - Use VPN to bypass web filters" "ERROR"
-        Write-Log "  - Contact network admin to whitelist raw.githubusercontent.com" "ERROR"
-        exit 1
     }
+    
+    return $false
 }
 
-# Save script to temp location
+# Download main script
 $tempScriptPath = Join-Path $env:TEMP "Invoke-ForensicAnalysis.ps1"
-$mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
-Write-Log "Script saved to: $tempScriptPath" "INFO"
+
+# Check if local script path is provided and exists
+if (![string]::IsNullOrWhiteSpace($LocalScriptPath) -and (Test-Path $LocalScriptPath)) {
+    Write-Log "Using local script file: $LocalScriptPath" "INFO"
+    Copy-Item $LocalScriptPath -Destination $tempScriptPath -Force -ErrorAction Stop
+    Write-Log "Script copied successfully" "SUCCESS"
+} elseif (![string]::IsNullOrWhiteSpace($ScriptUrl)) {
+    Write-Log "Downloading forensic analysis script from: $ScriptUrl" "INFO"
+    
+    # Check if it's a GitHub URL - try alternatives automatically
+    if ($ScriptUrl -match 'githubusercontent\.com|github\.com') {
+        Write-Log "GitHub URL detected - trying alternative domains..." "INFO"
+        $success = Get-ScriptFromGitHub -OriginalUrl $ScriptUrl -OutputPath $tempScriptPath
+        
+        if ($success) {
+            Write-Log "Script downloaded successfully via alternative domain" "SUCCESS"
+        } else {
+            # All alternatives including original GitHub URL failed - suggest using local script
+            Write-Log "All alternative domains failed (including original GitHub URL)" "ERROR"
+            Write-Log "" "ERROR"
+            Write-Log "SOLUTION: Use -LocalScriptPath parameter or download manually:" "ERROR"
+            Write-Log "  1. Open: https://github.com/monobrau/forensicinvestigator/blob/main/Invoke-ForensicAnalysis.ps1" "ERROR"
+            Write-Log "  2. Click 'Raw' button (top right)" "ERROR"
+            Write-Log "  3. Save the file as Invoke-ForensicAnalysis.ps1" "ERROR"
+            Write-Log "  4. Run: .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
+            exit 1
+                
+                Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
+                $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
+            } catch {
+                $errorMsg = $_.Exception.Message
+                
+                # Check for SSL/TLS errors
+                if ($errorMsg -match 'SSL/TLS|TLS|secure channel|Could not create') {
+                    Write-Log "ERROR: SSL/TLS connection failed (common on Windows Server 2012 R2)" "ERROR"
+                    Write-Log "This usually means TLS 1.2 is not enabled" "ERROR"
+                    Write-Log "" "ERROR"
+                    Write-Log "SOLUTION - Use Local Script:" "ERROR"
+                    Write-Log "  .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
+                    Write-Log "" "ERROR"
+                    Write-Log "Or enable TLS 1.2: [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12" "ERROR"
+                    exit 1
+                }
+                
+                Write-Log "Failed to download script: $errorMsg" "ERROR"
+                Write-Log "Attempting alternate download method..." "WARN"
+
+                try {
+                    # Fallback: Use WebClient with User-Agent
+                    $webClient = New-Object System.Net.WebClient
+                    $webClient.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
+                    $webClient.Encoding = [System.Text.Encoding]::UTF8
+                    $mainScript = $webClient.DownloadString($ScriptUrl)
+                    $webClient.Dispose()
+                    
+                    # Verify it's PowerShell code
+                    if ($mainScript -match '<html|<HTML|<!DOCTYPE|Securly|web filter') {
+                        throw "Received HTML page instead of PowerShell script. Web filter may be blocking GitHub."
+                    }
+                    
+                    # Verify it's actually PowerShell
+                    if ($mainScript -notmatch '\.SYNOPSIS|function |param\(|\[CmdletBinding\]') {
+                        throw "Downloaded content doesn't appear to be a PowerShell script"
+                    }
+                    
+                    Write-Log "Downloaded via WebClient" "SUCCESS"
+                    $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
+                } catch {
+                    Write-Log "All download methods failed. Exiting." "ERROR"
+                    Write-Log "" "ERROR"
+                    Write-Log "ERROR DETAILS: $($_.Exception.Message)" "ERROR"
+                    Write-Log "" "ERROR"
+                    Write-Log "SOLUTION - Use Local Script:" "ERROR"
+                    Write-Log "  .\Remote-Launch.ps1 -LocalScriptPath '.\Invoke-ForensicAnalysis.ps1'" "ERROR"
+                    Write-Log "" "ERROR"
+                    Write-Log "Or download manually and use -LocalScriptPath parameter" "ERROR"
+                    exit 1
+                }
+            }
+        }
+    } else {
+        # Non-GitHub URL - try direct download
+        try {
+            $mainScript = Invoke-RestMethod -Uri $ScriptUrl -UseBasicParsing -ErrorAction Stop
+            Write-Log "Script downloaded successfully ($($mainScript.Length) bytes)" "SUCCESS"
+            $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
+        } catch {
+            Write-Log "Failed to download script: $_" "ERROR"
+            Write-Log "Attempting alternate download method..." "WARN"
+
+            try {
+                $mainScript = (New-Object System.Net.WebClient).DownloadString($ScriptUrl)
+                Write-Log "Downloaded via WebClient" "SUCCESS"
+                $mainScript | Out-File -FilePath $tempScriptPath -Encoding UTF8 -Force
+            } catch {
+                Write-Log "All download methods failed. Exiting." "ERROR"
+                Write-Log "TIP: Use -LocalScriptPath parameter with a local file path" "WARN"
+                exit 1
+            }
+        }
+    }
+} else {
+    Write-Log "No script source provided. Use -ScriptUrl or -LocalScriptPath parameter." "ERROR"
+    exit 1
+}
+
+Write-Log "Script ready at: $tempScriptPath" "INFO"
 
 # Build execution parameters
 $params = @{

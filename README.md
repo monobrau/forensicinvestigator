@@ -88,6 +88,32 @@ This will:
 
 The tool supports remote deployment via ScreenConnect and direct PowerShell execution.
 
+### ⚠️ GitHub Blocked? Automatic Alternative Domains!
+
+**NEW:** Scripts automatically try 5 alternative GitHub domains/CDNs when `raw.githubusercontent.com` is blocked!
+
+**Automatic alternatives tried:**
+1. `cdn.jsdelivr.net/gh/` (jsDelivr CDN - recommended)
+2. `cdn.staticdelivr.com/gh/` (StaticDelivr CDN)
+3. `raw.githack.com` (Githack proxy)
+4. `rawgit.net` (Rawgit proxy)
+
+**Just use your normal GitHub URL** - alternatives are tried automatically! See **[GITHUB_ALTERNATIVE_DOMAINS.md](GITHUB_ALTERNATIVE_DOMAINS.md)** for details.
+
+**If all alternatives fail**, see **[ALTERNATIVE_HOSTING.md](ALTERNATIVE_HOSTING.md)** for additional solutions:
+- Using local script files (`-LocalScriptPath` parameter)
+- Self-hosting on internal web servers
+- Using alternative Git hosting (GitLab, Bitbucket, etc.)
+- Network share deployment
+
+**Quick Solution - Use Local Script:**
+```powershell
+# Copy script to target machine first, then:
+.\Remote-Launch.ps1 -LocalScriptPath "C:\Scripts\Invoke-ForensicAnalysis.ps1" -OutputPath "C:\SecurityReports"
+```
+
+All scripts now support `-LocalScriptPath` and `-ScriptUrl` parameters for maximum flexibility.
+
 ### Tested & Verified Methods
 
 #### Direct Download & Execute (✅ Tested)
@@ -97,6 +123,16 @@ Download the main script directly and run with custom parameters:
 ```powershell
 #!ps
 $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\FA.ps1" -Encoding UTF8 -Force; powershell.exe -ExecutionPolicy Bypass -NoProfile -File "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+```
+
+**If GitHub is blocked**, use alternative hosting:
+```powershell
+#!ps
+# Option 1: Use local script file
+Copy-Item "\\server\share\scripts\Invoke-ForensicAnalysis.ps1" "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
+
+# Option 2: Use alternative hosting URL
+irm "https://your-server.com/scripts/Invoke-ForensicAnalysis.ps1" -OutFile "$env:TEMP\FA.ps1"; & "$env:TEMP\FA.ps1" -OutputPath "C:\SecurityReports"
 ```
 
 **Benefits:**
@@ -371,6 +407,16 @@ Use this command in ScreenConnect, replacing `YOUR_BASE64_STRING` with the strin
 $creds = "YOUR_BASE64_STRING"; $script = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Send-ForensicReport.ps1" -UseBasicParsing; $script | Out-File -FilePath "$env:TEMP\SendReport.ps1" -Encoding UTF8 -Force; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds
 ```
 
+**If GitHub is blocked**, use alternative hosting or local script:
+```powershell
+#!ps
+# Option 1: Use local script file
+$creds = "YOUR_BASE64_STRING"; Copy-Item "\\server\share\scripts\Send-ForensicReport.ps1" "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds -LocalScriptPath "\\server\share\scripts\Invoke-ForensicAnalysis.ps1"
+
+# Option 2: Use alternative hosting URL
+$creds = "YOUR_BASE64_STRING"; irm "https://your-server.com/scripts/Send-ForensicReport.ps1" -OutFile "$env:TEMP\SendReport.ps1"; & "$env:TEMP\SendReport.ps1" -EncryptedCredentialsBase64 $creds -ScriptUrl "https://your-server.com/scripts/Invoke-ForensicAnalysis.ps1"
+```
+
 **Option B: Configure Script Locally (Alternative)**
 
 If you prefer to configure the script directly, open `Send-ForensicReport.ps1` and update the configuration section at the top:
@@ -614,6 +660,13 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ### Sysinternals Download Failures
 Ensure you have internet connectivity and can access `https://live.sysinternals.com/`
+
+### GitHub Access Blocked
+If `raw.githubusercontent.com` is blocked:
+- Use `-LocalScriptPath` parameter with locally transferred script files
+- Self-host scripts on internal web server (see [ALTERNATIVE_HOSTING.md](ALTERNATIVE_HOSTING.md))
+- Use alternative Git hosting (GitLab, Bitbucket, etc.)
+- Deploy via network share or USB drive
 
 ## Example Output Summary
 
