@@ -12,6 +12,8 @@ The scripts now automatically try these alternative domains when GitHub is block
 
 **Just use your normal GitHub URL** - alternatives are tried automatically!
 
+**Note:** If CDN caches are stale, you may need to wait a few minutes or use a direct GitHub URL with `-LocalScriptPath` after manual download.
+
 ```powershell
 # Works automatically - tries alternatives if GitHub is blocked
 .\Remote-Launch.ps1 -ScriptUrl "https://raw.githubusercontent.com/monobrau/forensicinvestigator/main/Invoke-ForensicAnalysis.ps1"
