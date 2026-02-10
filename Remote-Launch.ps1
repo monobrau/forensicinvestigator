@@ -125,10 +125,10 @@ function Write-Log {
 # Banner
 Write-Host @"
 
-╔═══════════════════════════════════════════════════════════╗
-║     Forensic Investigation Tool - Remote Launcher        ║
-║              Sysinternals + VirusTotal                    ║
-╚═══════════════════════════════════════════════════════════╝
+=================================================================
+     Forensic Investigation Tool - Remote Launcher        
+              Sysinternals + VirusTotal                    
+=================================================================
 
 "@ -ForegroundColor Cyan
 
@@ -423,9 +423,9 @@ Remove-Item $tempScriptPath -Force -ErrorAction SilentlyContinue
 # Summary
 Write-Host @"
 
-╔═══════════════════════════════════════════════════════════╗
-║                  Execution Complete                       ║
-╚═══════════════════════════════════════════════════════════╝
+=================================================================
+                  Execution Complete                       
+=================================================================
 
 Report Location: $OutputPath
 
